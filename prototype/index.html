@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ApnaLoop — QR Loyalty for Indian Small Shops</title>
+  <meta name="theme-color" content="#0F9D58" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="ApnaLoop" />
+
+  <!-- Google Fonts: Plus Jakarta Sans & Hind -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '"Hind"', 'sans-serif'],
+            hindi: ['"Hind"', 'sans-serif']
+          },
+          colors: {
+            brandGreen: '#0F9D58',
+            brandOrange: '#FF6B00',
+            brandCream: '#FFF8F0',
+            brandDark: '#1A1A1A'
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', 'Hind', sans-serif;
+      background-color: #FFF8F0;
+      color: #1A1A1A;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Stamp pop animation */
+    @keyframes stampPop {
+      0% { transform: scale(0.3) rotate(-25deg); opacity: 0; }
+      70% { transform: scale(1.15) rotate(6deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .animate-stamp-pop {
+      animation: stampPop 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Smooth view entrance */
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .view-enter {
+      animation: fadeSlideUp 0.28s ease-out forwards;
+    }
+
+    /* Gold shimmer for 10/10 Reward Unlocked */
+    .gold-card {
+      background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 45%, #FDE68A 100%);
+      border: 2px solid #F59E0B;
+    }
+
+    /* Print Standee Styling */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printable-standee-area,
+      #printable-standee-area * {
+        visibility: visible !important;
+      }
+      #printable-standee-area {
+        position: fixed !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 380px !important;
+        box-shadow: none !important;
+        border: 3px solid #1A1A1A !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col pb-24 lg:pb-10">
+
+  <!-- Sticky Top App Header -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-black/5 no-print">
+    <div class="max-w-5xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+      <!-- Brand Logo (Dark Blue & Gold ApnaLoop Mark) -->
+      <button onclick="navigateTo('home')" class="flex items-center gap-2.5 text-left group focus:outline-none">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#0F294A] to-[#1E3A8A] border border-[#D4AF37]/60 flex items-center justify-center text-[#F5C451] shadow-sm group-hover:scale-105 transition-transform">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.739-8-4.585 0-4.585 8 0 8 5.606 0 7.644-8 12.74-8z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-extrabold text-lg sm:text-xl tracking-tight text-[#0F294A]">Apna<span class="text-[#D4AF37]">Loop</span></span>
+            <span class="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-[#0F9D58]/10 text-[#0F9D58]">PWA</span>
+          </div>
+          <p class="text-[11px] text-neutral-500 -mt-0.5 hidden xs:block" data-i18n="tagline_short">QR Loyalty • Zero Jhanjhat</p>
+        </div>
+      </button>
+
+      <!-- Desktop Navigation Links -->
+      <nav class="hidden lg:flex items-center gap-1 bg-[#FFF8F0] p-1 rounded-2xl border border-black/5">
+        <button onclick="navigateTo('home')" data-nav="home" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_home">Home</button>
+        <button onclick="navigateTo('customer')" data-nav="customer" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_card">Stamp Card</button>
+        <button onclick="navigateTo('onboarding')" data-nav="onboarding" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_setup">Shop QR</button>
+        <button onclick="navigateTo('dashboard')" data-nav="dashboard" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_dashboard">Dashboard</button>
+        <button onclick="navigateTo('redeem')" data-nav="redeem" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_redeem">Redeem</button>
+      </nav>
+
+      <!-- Right Controls: Live DB Pill, Language Toggle, WhatsApp Alerts, Install PWA, Super Admin -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <!-- Live DB Status Pill -->
+        <button onclick="openLiveDbModal()" id="live-db-pill" title="Live Database Status & Custom Connection" class="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-xs font-extrabold text-[#0F9D58] flex items-center gap-1.5 transition-colors">
+          <span id="live-db-dot" class="w-2 h-2 rounded-full bg-[#0F9D58] animate-pulse"></span>
+          <span id="live-db-label" class="hidden md:inline">Live DB</span>
+        </button>
+
+        <!-- Hinglish / English Toggle -->
+        <button onclick="toggleLanguage()" id="lang-toggle-btn" title="Switch Language" class="px-2.5 py-1.5 rounded-xl bg-[#FFF8F0] hover:bg-orange-100/70 border border-black/10 text-xs font-bold text-[#1A1A1A] flex items-center gap-1.5 transition-colors">
+          <span class="w-2 h-2 rounded-full bg-[#FF6B00]"></span>
+          <span id="lang-label">Hinglish</span>
+        </button>
+
+        <!-- WhatsApp Alerts Feed Drawer Button -->
+        <button onclick="toggleWhatsAppDrawer()" title="Owner WhatsApp Alerts" class="relative p-2 rounded-xl bg-[#0F9D58]/10 hover:bg-[#0F9D58]/20 text-[#0F9D58] transition-colors">
+          <i data-lucide="message-circle" class="w-4 h-4"></i>
+          <span id="wa-badge" class="hidden absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#FF6B00] text-white text-[10px] font-extrabold flex items-center justify-center tabular-nums">0</span>
+        </button>
+
+        <!-- Install PWA Button -->
+        <button onclick="openPwaModal()" title="Install App on Phone" class="p-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition-colors">
+          <i data-lucide="smartphone" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Super Admin Link -->
+        <button onclick="navigateTo('admin')" data-nav="admin" class="nav-pill px-2.5 py-1.5 rounded-xl border border-black/10 text-xs font-bold text-neutral-700 hover:bg-neutral-100 flex items-center gap-1 transition-colors">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-[#0F9D58]"></i>
+          <span class="hidden sm:inline" data-i18n="nav_admin">Admin</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Toast Notification Banner -->
+  <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md pointer-events-none flex flex-col gap-2 no-print"></div>
+
+  <!-- Main Dynamic App Container -->
+  <main id="app-root" class="flex-1 w-full max-w-5xl mx-auto px-3 sm:px-6 pt-5 pb-8"></main>
+
+  <!-- Mobile Bottom Navigation Bar (App Ergonomics) -->
+  <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-black/10 px-2 py-1.5 no-print">
+    <div class="max-w-md mx-auto grid grid-cols-5 gap-1">
+      <button onclick="navigateTo('home')" data-nav="home" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="home" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_home">Home</span>
+      </button>
+      <button onclick="navigateTo('customer')" data-nav="customer" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="stamp" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_card">Card</span>
+      </button>
+      <button onclick="navigateTo('onboarding')" data-nav="onboarding" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="qr-code" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_setup">Shop QR</span>
+      </button>
+      <button onclick="navigateTo('dashboard')" data-nav="dashboard" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="bar-chart-3" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_dashboard">Owner</span>
+      </button>
+      <button onclick="navigateTo('redeem')" data-nav="redeem" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="gift" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_redeem">Redeem</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- WhatsApp Cloud API Live Alerts Drawer -->
+  <div id="wa-drawer-backdrop" onclick="toggleWhatsAppDrawer()" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs hidden no-print"></div>
+  <aside id="wa-drawer" class="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-[#ECE5DD] shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col no-print">
+    <!-- WhatsApp Header -->
+    <div class="bg-[#075E54] text-white px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center font-extrabold text-sm">AL</div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h3 class="font-bold text-sm">ApnaLoop WhatsApp Bot</h3>
+            <span class="w-2 h-2 rounded-full bg-[#25D366]"></span>
+          </div>
+          <p class="text-[11px] text-emerald-100">Owner Instant Alerts & Sunday Digest</p>
+        </div>
+      </div>
+      <button onclick="toggleWhatsAppDrawer()" class="p-2 rounded-full hover:bg-white/10">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Messages Feed -->
+    <div id="wa-messages-list" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+
+    <!-- Sunday 9:00 AM Weekly Digest Action -->
+    <div class="p-3 bg-white border-t border-black/10 flex items-center justify-between gap-2">
+      <div class="text-xs text-neutral-600">
+        <span class="font-bold text-[#1A1A1A]">Sunday 9:00 AM Digest</span>
+        <p class="text-[11px]">Weekly summary alert to owner</p>
+      </div>
+      <button onclick="sendWeeklySundayDigest()" class="px-3 py-2 rounded-xl bg-[#0F9D58] hover:bg-[#0c8248] text-white text-xs font-bold flex items-center gap-1.5 shrink-0">
+        <i data-lucide="send" class="w-3.5 h-3.5"></i>
+        <span>Send Digest</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Install App (PWA) Modal -->
+  <div id="pwa-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/50 backdrop-blur-xs no-print">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 relative view-enter">
+      <button onclick="closePwaModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600">✕</button>
+      <div class="w-12 h-12 rounded-2xl bg-[#0F9D58]/10 text-[#0F9D58] flex items-center justify-center mb-4">
+        <i data-lucide="smartphone" class="w-6 h-6"></i>
+      </div>
+      <h3 class="text-lg font-extrabold text-[#1A1A1A]">ApnaLoop App Install Karein</h3>
+      <p class="text-sm text-neutral-600 mt-1">Bina Play Store ke seedha apne phone ki Home Screen par app jaisa icon lagayein:</p>
+      <div class="mt-4 space-y-2.5 text-xs">
+        <div class="p-3 rounded-2xl bg-[#FFF8F0] border border-orange-200/60">
+          <p class="font-bold text-[#1A1A1A]">Android (Chrome):</p>
+          <p class="text-neutral-600 mt-0.5">Upar right mein <strong>⋮ (3 dots)</strong> dabayein → <strong>"Add to Home screen"</strong> ya <strong>"Install app"</strong> chunein.</p>
+        </div>
+        <div class="p-3 rounded-2xl bg-[#FFF8F0] border border-orange-200/60">
+          <p class="font-bold text-[#1A1A1A]">iPhone (Safari):</p>
+          <p class="text-neutral-600 mt-0.5">Neeche <strong>Share (↑)</strong> icon dabayein → <strong>"Add to Home Screen"</strong> par tap karein.</p>
+        </div>
+      </div>
+      <button onclick="closePwaModal()" class="mt-5 w-full py-3 rounded-2xl bg-[#1A1A1A] text-white font-bold text-sm">Samajh Gaya</button>
+    </div>
+  </div>
+
+  <!-- Live Database Status, Custom Firebase/Supabase Config & SQL Schema Modal -->
+  <div id="live-db-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-black/55 backdrop-blur-xs overflow-y-auto no-print">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-black/10 relative my-auto view-enter max-h-[90vh] overflow-y-auto">
+      <div class="flex items-start justify-between gap-3 pb-4 border-b border-neutral-100">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-[#0F294A] text-[#F5C451] flex items-center justify-center shrink-0">
+            <i data-lucide="database" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-extrabold text-base sm:text-lg text-[#1A1A1A]">Live Database & Backend Schema</h3>
+              <span id="db-modal-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-[#0F9D58]">ACTIVE</span>
+            </div>
+            <p id="db-modal-subtitle" class="text-xs text-neutral-500 mt-0.5"></p>
+          </div>
+        </div>
+        <button onclick="closeLiveDbModal()" class="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 shrink-0">✕</button>
+      </div>
+
+      <!-- Provider Selector Tabs -->
+      <div class="grid grid-cols-3 gap-2 my-4 bg-[#FFF8F0] p-1 rounded-2xl border border-black/5 text-xs font-extrabold">
+        <button onclick="switchDbPanelTab('firebase')" id="db-tab-firebase" class="py-2 rounded-xl bg-[#0F294A] text-white transition-all">Firebase Live</button>
+        <button onclick="switchDbPanelTab('supabase')" id="db-tab-supabase" class="py-2 rounded-xl text-neutral-700 hover:bg-white transition-all">Supabase Config</button>
+        <button onclick="switchDbPanelTab('schema')" id="db-tab-schema" class="py-2 rounded-xl text-neutral-700 hover:bg-white transition-all">SQL & Firestore Rules</button>
+      </div>
+
+      <!-- Tab 1: Firebase Config -->
+      <div id="db-panel-firebase" class="space-y-3">
+        <p class="text-xs text-neutral-600 leading-relaxed">
+          Apna khud ka Firebase project connect karein taaki <strong>shops, stamps, rewards, whatsappMessages</strong> aur <strong>auditLogs</strong> real-time <code class="bg-neutral-100 px-1 rounded">onSnapshot</code> ke saath sync hon. Bina custom config ke bhi local persistent cache automatically kaam karta hai.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Firebase API Key</label>
+            <input id="fb-api-key" type="text" placeholder="AIzaSy..." class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Project ID</label>
+            <input id="fb-project-id" type="text" placeholder="apnaloop-prod" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Auth Domain (Optional)</label>
+            <input id="fb-auth-domain" type="text" placeholder="apnaloop-prod.firebaseapp.com" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">App ID (Optional)</label>
+            <input id="fb-app-id" type="text" placeholder="1:123456:web:abcdef" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
+          <button onclick="resetCustomDbConfig()" class="px-3.5 py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-extrabold">
+            Reset to Default / Local Cache
+          </button>
+          <button onclick="applyFirebaseConfigFromModal()" class="px-5 py-2.5 rounded-xl bg-[#0F9D58] hover:bg-[#0B7A44] text-white text-xs font-extrabold shadow-sm">
+            Connect & Sync Live DB
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Supabase URL & Anon Key Config -->
+      <div id="db-panel-supabase" class="space-y-3 hidden">
+        <p class="text-xs text-neutral-600 leading-relaxed">
+          Agar aap production backend ke liye <strong>Supabase PostgreSQL</strong> use kar rahe hain, to yahan apna Supabase Project URL aur Anon Key save karein aur neeche SQL tab se schema run karein.
+        </p>
+        <div>
+          <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Supabase Project URL</label>
+          <input id="sb-url-input" type="url" placeholder="https://xyzcompany.supabase.co" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Supabase Anon Public Key</label>
+          <input id="sb-anon-input" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="applySupabaseConfigFromModal()" class="px-5 py-2.5 rounded-xl bg-[#0F294A] hover:bg-blue-950 text-white text-xs font-extrabold shadow-sm">
+            Save Supabase Endpoint
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 3: Copyable SQL Schema & Firestore Structure -->
+      <div id="db-panel-schema" class="space-y-3 hidden">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-extrabold text-[#1A1A1A]">Supabase PostgreSQL Schema (shops, customers, stamps, rewards, subscriptions)</span>
+          <button onclick="copySqlSchema()" class="px-3 py-1.5 rounded-xl bg-[#0F9D58] text-white text-xs font-extrabold flex items-center gap-1.5">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Copy SQL</span>
+          </button>
+        </div>
+        <pre id="sql-schema-code" class="p-3.5 rounded-2xl bg-[#1A1A1A] text-emerald-300 text-[11px] font-mono overflow-x-auto leading-relaxed max-h-60">CREATE TABLE IF NOT EXISTS shops (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  category TEXT NOT NULL,
+  reward_text TEXT NOT NULL,
+  lat DOUBLE PRECISION,
+  lng DOUBLE PRECISION,
+  subscription_status TEXT NOT NULL DEFAULT 'Trial',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS customers (
+  id TEXT PRIMARY KEY,
+  phone TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS stamps (
+  id TEXT PRIMARY KEY,
+  shop_id TEXT NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  customer_id TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  customer_phone TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS rewards (
+  id TEXT PRIMARY KEY,
+  shop_id TEXT NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  customer_id TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  customer_phone TEXT NOT NULL,
+  reward_text TEXT NOT NULL,
+  code TEXT UNIQUE NOT NULL,
+  status TEXT NOT NULL DEFAULT 'unlocked',
+  redeemed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id TEXT PRIMARY KEY,
+  shop_id TEXT NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  razorpay_order_id TEXT,
+  status TEXT NOT NULL DEFAULT 'trialing',
+  current_period_end TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);</pre>
+        <p class="text-[11px] text-neutral-500">
+          Firestore collections active under <code class="font-mono">/artifacts/{appId}/public/data/{collection}</code>: <span class="font-mono font-bold text-neutral-700">shops, stamps, rewards, whatsappMessages, auditLogs</span>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. TRANSLATIONS (HINGLISH DEFAULT + LIVE ENGLISH TOGGLE)
+    // =========================================================================
+    const I18N = {
+      hinglish: {
+        tagline_short: 'QR Loyalty • Zero Jhanjhat',
+        nav_home: 'Home',
+        nav_card: 'Stamp Card',
+        nav_setup: 'Shop QR',
+        nav_dashboard: 'Dashboard',
+        nav_redeem: 'Redeem',
+        nav_admin: 'Admin',
+        hero_badge: 'Bina App Download • 100% Indian Dukaano Ke Liye',
+        hero_title: 'Apni dukaan ka apna loyalty card',
+        hero_sub: 'Customer counter par QR scan kare, stamp paaye, aur 10th visit par free reward jeete. Dukaandar ka daily kaam = ZERO.',
+        cta_setup_shop: 'Apni Dukaan Jodein (2 Min)',
+        cta_open_card: 'Customer Card Kholein',
+        how_title: 'Kaise Kaam Karta Hai?',
+        how_cust_title: 'Customer Ke Liye (10 Seconds)',
+        how_owner_title: 'Dukaandar Ke Liye (Zero Kaam)',
+        pricing_title: 'Seedha aur Sasta Plan',
+        pricing_free: 'Pehle 30 Din FREE',
+        pricing_paid: 'Uske baad ₹149/month',
+        pricing_per_day: '₹5 / din se bhi kam',
+        claim_stamp_btn: 'Aaj Ka Stamp Claim Karein',
+        verify_otp_title: 'Pehli Baar Login (OTP Verification)',
+        setup_title: '2-Minute Shop Setup',
+        setup_sub: 'Sirf 3 details bharein aur apna QR Standee turant print karein.',
+        dash_today: 'Aaj ke stamps',
+        dash_repeat: 'Is hafte wapas aaye',
+        dash_total: 'Total customers',
+        redeem_title: '6-Digit Reward Code Verify Karein',
+        redeem_btn: 'Reward Dedo'
+      },
+      english: {
+        tagline_short: 'QR Loyalty • Zero Effort',
+        nav_home: 'Home',
+        nav_card: 'Stamp Card',
+        nav_setup: 'Shop QR',
+        nav_dashboard: 'Dashboard',
+        nav_redeem: 'Redeem',
+        nav_admin: 'Admin',
+        hero_badge: 'No App Download • Built for Indian Local Shops',
+        hero_title: 'Your shop’s own digital loyalty card',
+        hero_sub: 'Customers scan your counter QR, collect stamps, and unlock a free reward on their 10th visit. Daily owner effort = ZERO.',
+        cta_setup_shop: 'Register Your Shop (2 Min)',
+        cta_open_card: 'Open Customer Card',
+        how_title: 'How It Works',
+        how_cust_title: 'For Customers (10 Seconds)',
+        how_owner_title: 'For Shop Owners (Zero Effort)',
+        pricing_title: 'Simple, Transparent Pricing',
+        pricing_free: 'First 30 Days FREE',
+        pricing_paid: 'Then ₹149/month',
+        pricing_per_day: 'Less than ₹5 / day',
+        claim_stamp_btn: "Claim Today's Stamp",
+        verify_otp_title: 'First-Time Login (OTP Verification)',
+        setup_title: '2-Minute Shop Setup',
+        setup_sub: 'Enter just 3 details to generate and print your counter QR standee.',
+        dash_today: "Today's stamps",
+        dash_repeat: 'Returned this week',
+        dash_total: 'Total customers',
+        redeem_title: 'Verify 6-Digit Reward Code',
+        redeem_btn: 'Give Reward'
+      }
+    };
+
+    // =========================================================================
+    // 2. CATEGORY PRESETS & PERSISTENT DATABASE (LOCALSTORAGE + LIVE SYNC)
+    // =========================================================================
+    const CATEGORY_META = {
+      Chai: { emoji: '☕', defaultReward: '1 Masala Chai + Bun Maska FREE', color: 'bg-amber-100 text-amber-800' },
+      Salon: { emoji: '✂️', defaultReward: '1 Haircut ya Head Massage FREE', color: 'bg-purple-100 text-purple-800' },
+      Bakery: { emoji: '🥐', defaultReward: '1 Veg Puff ya Pastry Box FREE', color: 'bg-orange-100 text-orange-800' },
+      Juice: { emoji: '🥤', defaultReward: '1 Fresh Sugarcane / Mango Juice FREE', color: 'bg-emerald-100 text-emerald-800' },
+      'Car Wash': { emoji: '🚗', defaultReward: '1 Full Foam Wash FREE', color: 'bg-blue-100 text-blue-800' },
+      Other: { emoji: '🏪', defaultReward: '₹100 Ka Instant Discount FREE', color: 'bg-neutral-100 text-neutral-800' }
+    };
+
+    const STORAGE_KEY = 'apnaloop_production_db_v1';
+
+    function createInitialState() {
+      const now = Date.now();
+      const dayMs = 24 * 60 * 60 * 1000;
+
+      const shops = [
+        {
+          id: 'sharma-chai',
+          name: 'Sharma Ji Ki Chai',
+          phone: '9876543210',
+          category: 'Chai',
+          reward_text: '1 Masala Chai + Bun Maska FREE',
+          lat: null,
+          lng: null,
+          subscription_status: 'Active ₹149',
+          created_at: new Date(now - 18 * dayMs).toISOString()
+        },
+        {
+          id: 'royal-cuts',
+          name: 'Royal Cuts Men Salon',
+          phone: '9820112233',
+          category: 'Salon',
+          reward_text: '1 Haircut ya Beard Styling FREE',
+          lat: null,
+          lng: null,
+          subscription_status: 'Trial',
+          created_at: new Date(now - 9 * dayMs).toISOString()
+        },
+        {
+          id: 'bombay-bakery',
+          name: 'Bombay Fresh Bakery',
+          phone: '9811223344',
+          category: 'Bakery',
+          reward_text: '1 Chocolate Pastry + Puff FREE',
+          lat: null,
+          lng: null,
+          subscription_status: 'Active ₹149',
+          created_at: new Date(now - 25 * dayMs).toISOString()
+        }
+      ];
+
+      // Seed realistic historical stamps so Dashboard & Admin show live metrics out-of-the-box
+      const stamps = [
+        { id: 'st-101', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 6 * dayMs).toISOString() },
+        { id: 'st-102', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 5 * dayMs).toISOString() },
+        { id: 'st-103', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 4 * dayMs).toISOString() },
+        { id: 'st-104', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 3 * dayMs).toISOString() },
+        { id: 'st-105', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 2 * dayMs).toISOString() },
+        { id: 'st-106', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 3600 * 1000 * 2).toISOString() },
+        { id: 'st-107', shop_id: 'sharma-chai', customer_id: 'cust-priya', customer_name: 'Priya Nair', customer_phone: '9988776655', status: 'active', created_at: new Date(now - 3 * dayMs).toISOString() },
+        { id: 'st-108', shop_id: 'sharma-chai', customer_id: 'cust-priya', customer_name: 'Priya Nair', customer_phone: '9988776655', status: 'active', created_at: new Date(now - 3600 * 1000 * 5).toISOString() },
+        { id: 'st-109', shop_id: 'royal-cuts', customer_id: 'cust-amit', customer_name: 'Amit Kulkarni', customer_phone: '9765432109', status: 'active', created_at: new Date(now - 4 * dayMs).toISOString() },
+        { id: 'st-110', shop_id: 'royal-cuts', customer_id: 'cust-amit', customer_name: 'Amit Kulkarni', customer_phone: '9765432109', status: 'active', created_at: new Date(now - 3600 * 1000 * 4).toISOString() }
+      ];
+
+      const whatsappMessages = [
+        {
+          id: 'wa-1',
+          shop_id: 'sharma-chai',
+          stamp_id: 'st-106',
+          text: 'Rohan Verma ne stamp liya (6/10) - Sharma Ji Ki Chai',
+          timestamp: new Date(now - 3600 * 1000 * 2).toISOString(),
+          cancelled: false,
+          unread: false
+        },
+        {
+          id: 'wa-2',
+          shop_id: 'sharma-chai',
+          stamp_id: 'st-108',
+          text: 'Priya Nair ne stamp liya (2/10) - Sharma Ji Ki Chai',
+          timestamp: new Date(now - 3600 * 1000 * 5).toISOString(),
+          cancelled: false,
+          unread: false
+        }
+      ];
+
+      const auditLogs = [
+        { id: 'log-1', type: 'STAMP_ISSUED', shop_name: 'Sharma Ji Ki Chai', detail: 'Rohan Verma (+91 9123456780) collected stamp 6/10', timestamp: new Date(now - 3600 * 1000 * 2).toISOString() },
+        { id: 'log-2', type: 'STAMP_ISSUED', shop_name: 'Sharma Ji Ki Chai', detail: 'Priya Nair (+91 9988776655) collected stamp 2/10', timestamp: new Date(now - 3600 * 1000 * 5).toISOString() },
+        { id: 'log-3', type: 'SHOP_REGISTERED', shop_name: 'Royal Cuts Men Salon', detail: 'Owner +91 9820112233 started 30-day free trial', timestamp: new Date(now - 9 * dayMs).toISOString() }
+      ];
+
+      return {
+        lang: 'hinglish',
+        currentView: 'home',
+        selectedShopId: 'sharma-chai',
+        ownerShopId: 'sharma-chai',
+        currentCustomer: null,
+        pendingOtp: null,
+        lastScanSuccess: null,
+        shops,
+        stamps,
+        rewards: [],
+        whatsappMessages,
+        auditLogs,
+        fraudBlockedCount: 0
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return createInitialState();
+        const parsed = JSON.parse(raw);
+        return { ...createInitialState(), ...parsed };
+      } catch (e) {
+        return createInitialState();
+      }
+    }
+
+    let state = loadState();
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.warn('Storage error', e);
+      }
+      updateWhatsAppBadge();
+      updateLiveDbBadge();
+    }
+
+    // Real-time listener callback from Firebase onSnapshot
+    window.applyRemoteCollection = function (colName, items) {
+      if (!Array.isArray(items) || items.length === 0) return;
+
+      if (colName === 'shops') {
+        const mergedMap = new Map();
+        state.shops.forEach((s) => mergedMap.set(s.id, s));
+        items.forEach((remoteShop) => mergedMap.set(remoteShop.id, { ...mergedMap.get(remoteShop.id), ...remoteShop }));
+        state.shops = Array.from(mergedMap.values());
+      } else if (colName === 'stamps') {
+        const mergedMap = new Map();
+        state.stamps.forEach((s) => mergedMap.set(s.id, s));
+        items.forEach((remoteStamp) => mergedMap.set(remoteStamp.id, { ...mergedMap.get(remoteStamp.id), ...remoteStamp }));
+        state.stamps = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      } else if (colName === 'rewards') {
+        const mergedMap = new Map();
+        state.rewards.forEach((r) => mergedMap.set(r.id, r));
+        items.forEach((remoteReward) => mergedMap.set(remoteReward.id, { ...mergedMap.get(remoteReward.id), ...remoteReward }));
+        state.rewards = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      } else if (colName === 'whatsappMessages') {
+        const mergedMap = new Map();
+        state.whatsappMessages.forEach((m) => mergedMap.set(m.id, m));
+        items.forEach((remoteMsg) => mergedMap.set(remoteMsg.id, { ...mergedMap.get(remoteMsg.id), ...remoteMsg }));
+        state.whatsappMessages = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+      } else if (colName === 'auditLogs') {
+        const mergedMap = new Map();
+        state.auditLogs.forEach((l) => mergedMap.set(l.id, l));
+        items.forEach((remoteLog) => mergedMap.set(remoteLog.id, { ...mergedMap.get(remoteLog.id), ...remoteLog }));
+        state.auditLogs = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+      }
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {}
+      updateWhatsAppBadge();
+      updateLiveDbBadge();
+      renderCurrentView();
+    };
+
+    window.onLiveDbStateChange = function () {
+      updateLiveDbBadge();
+      renderCurrentView();
+    };
+
+    function updateLiveDbBadge() {
+      const dbBridge = window.ApnaLoopLiveDB;
+      const pill = document.getElementById('live-db-pill');
+      const dot = document.getElementById('live-db-dot');
+      const label = document.getElementById('live-db-label');
+      if (!pill || !dot || !label || !dbBridge) return;
+
+      if (dbBridge.status === 'connected') {
+        pill.className =
+          'px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-xs font-extrabold text-[#0F9D58] flex items-center gap-1.5 transition-colors';
+        dot.className = 'w-2 h-2 rounded-full bg-[#0F9D58] animate-pulse';
+        label.textContent = dbBridge.modeLabel;
+      } else {
+        pill.className =
+          'px-2.5 py-1.5 rounded-xl bg-[#FFF8F0] hover:bg-orange-100/70 border border-amber-300 text-xs font-extrabold text-amber-800 flex items-center gap-1.5 transition-colors';
+        dot.className = 'w-2 h-2 rounded-full bg-amber-500';
+        label.textContent = 'Local Live Store';
+      }
+    }
+
+    function openLiveDbModal() {
+      const dbBridge = window.ApnaLoopLiveDB;
+      const modal = document.getElementById('live-db-modal');
+      const badge = document.getElementById('db-modal-status-badge');
+      const sub = document.getElementById('db-modal-subtitle');
+
+      const saved = dbBridge ? dbBridge.getSavedCustomConfig() : null;
+      if (saved?.firebase) {
+        document.getElementById('fb-api-key').value = saved.firebase.apiKey || '';
+        document.getElementById('fb-project-id').value = saved.firebase.projectId || '';
+        document.getElementById('fb-auth-domain').value = saved.firebase.authDomain || '';
+        document.getElementById('fb-app-id').value = saved.firebase.appId || '';
+      }
+      if (saved?.supabase) {
+        document.getElementById('sb-url-input').value = saved.supabase.url || '';
+        document.getElementById('sb-anon-input').value = saved.supabase.anonKey || '';
+      }
+
+      if (dbBridge && dbBridge.status === 'connected') {
+        badge.textContent = 'LIVE CONNECTED';
+        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-[#0F9D58]';
+        sub.textContent = `${dbBridge.modeLabel} • ${dbBridge.projectLabel}`;
+      } else {
+        badge.textContent = 'PERSISTENT LOCAL CACHE';
+        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800';
+        sub.textContent = 'All data saved persistently in browser + ready for custom Firebase/Supabase plug-in';
+      }
+
+      switchDbPanelTab('firebase');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function closeLiveDbModal() {
+      const modal = document.getElementById('live-db-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function switchDbPanelTab(tabName) {
+      ['firebase', 'supabase', 'schema'].forEach((t) => {
+        const panel = document.getElementById(`db-panel-${t}`);
+        const btn = document.getElementById(`db-tab-${t}`);
+        if (panel) panel.classList.toggle('hidden', t !== tabName);
+        if (btn) {
+          btn.className =
+            t === tabName
+              ? 'py-2 rounded-xl bg-[#0F294A] text-white transition-all'
+              : 'py-2 rounded-xl text-neutral-700 hover:bg-white transition-all';
+        }
+      });
+      lucide.createIcons();
+    }
+
+    async function applyFirebaseConfigFromModal() {
+      const apiKey = document.getElementById('fb-api-key').value.trim();
+      const projectId = document.getElementById('fb-project-id').value.trim();
+      const authDomain = document.getElementById('fb-auth-domain').value.trim();
+      const appId = document.getElementById('fb-app-id').value.trim();
+
+      if (!apiKey || !projectId) {
+        showToast('Firebase API Key aur Project ID dono daalein.', 'error');
+        return;
+      }
+
+      window.ApnaLoopLiveDB.saveCustomConfig({
+        provider: 'firebase',
+        firebase: {
+          apiKey,
+          projectId,
+          authDomain: authDomain || `${projectId}.firebaseapp.com`,
+          appId: appId || ''
+        }
+      });
+
+      showToast('Connecting to Firebase Live Database...');
+      await window.ApnaLoopLiveDB.init();
+      await window.ApnaLoopLiveDB.seedInitialShopsIfEmpty(state.shops);
+      updateLiveDbBadge();
+      closeLiveDbModal();
+    }
+
+    function applySupabaseConfigFromModal() {
+      const url = document.getElementById('sb-url-input').value.trim();
+      const anonKey = document.getElementById('sb-anon-input').value.trim();
+      if (!url || !anonKey) {
+        showToast('Supabase URL aur Anon Key daalein.', 'error');
+        return;
+      }
+
+      window.ApnaLoopLiveDB.saveCustomConfig({
+        provider: 'supabase',
+        supabase: { url, anonKey }
+      });
+      window.ApnaLoopLiveDB.status = 'connected';
+      window.ApnaLoopLiveDB.modeLabel = 'Supabase Configured';
+      window.ApnaLoopLiveDB.projectLabel = url;
+      updateLiveDbBadge();
+      showToast('Supabase endpoint saved! SQL Schema tab se tables create karein.');
+      closeLiveDbModal();
+    }
+
+    async function resetCustomDbConfig() {
+      window.ApnaLoopLiveDB.clearCustomConfig();
+      await window.ApnaLoopLiveDB.init();
+      updateLiveDbBadge();
+      showToast('Reset to default live storage mode.');
+      closeLiveDbModal();
+    }
+
+    function copySqlSchema() {
+      const sqlEl = document.getElementById('sql-schema-code');
+      if (!sqlEl) return;
+      const text = sqlEl.innerText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast('SQL Schema clipboard mein copy ho gaya!'));
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('SQL Schema copy ho gaya!');
+      }
+    }
+
+    // =========================================================================
+    // 3. UTILITIES: TOASTS, HIERARCHY, GEOFENCE, SHORT-LIVED TOKEN
+    // =========================================================================
+    function t(key) {
+      return (I18N[state.lang] && I18N[state.lang][key]) || I18N.hinglish[key] || key;
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const colors = {
+        success: 'bg-[#1A1A1A] text-white border-emerald-500/40',
+        warning: 'bg-amber-900 text-amber-50 border-amber-400/50',
+        error: 'bg-red-700 text-white border-red-300/40'
+      };
+      el.className = `pointer-events-auto px-4 py-3 rounded-2xl shadow-xl border text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 view-enter ${colors[type] || colors.success}`;
+      el.innerHTML = `<span>${message}</span><button onclick="this.parentElement.remove()" class="opacity-70 hover:opacity-100">✕</button>`;
+      container.appendChild(el);
+      setTimeout(() => {
+        if (el.parentElement) el.remove();
+      }, 4200);
+    }
+
+    function fireConfetti(goldMode = false) {
+      if (typeof confetti !== 'function') return;
+      confetti({
+        particleCount: goldMode ? 90 : 55,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: goldMode ? ['#F59E0B', '#FBBF24', '#0F9D58', '#FFFFFF'] : ['#0F9D58', '#FF6B00', '#FBBF24']
+      });
+    }
+
+    function isSameDay(isoA, isoB) {
+      const a = new Date(isoA);
+      const b = new Date(isoB);
+      return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    }
+
+    function formatTimeAgo(iso) {
+      const diffSec = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+      if (diffSec < 60) return `${diffSec}s ago`;
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return `${diffMin}m ago`;
+      const diffHr = Math.floor(diffMin / 60);
+      if (diffHr < 24) return `${diffHr}h ago`;
+      return `${Math.floor(diffHr / 24)}d ago`;
+    }
+
+    // Haversine formula in meters (for 200m Geofence verification)
+    function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const toRad = (deg) => (deg * Math.PI) / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return Math.round(R * c);
+    }
+
+    // Short-lived signed QR session token (expires in 10 mins to prevent replay from static QR photos)
+    function issueShortLivedToken(shopId) {
+      const issuedAt = Date.now();
+      const raw = `${shopId}:${issuedAt}:APNALOOP_SIG`;
+      const token = btoa(raw).slice(0, 18);
+      sessionStorage.setItem(`apnaloop_qr_token_${shopId}`, JSON.stringify({ token, issuedAt }));
+      return token;
+    }
+
+    function verifyShortLivedToken(shopId) {
+      try {
+        const stored = JSON.parse(sessionStorage.getItem(`apnaloop_qr_token_${shopId}`) || 'null');
+        if (!stored) return issueShortLivedToken(shopId);
+        // Valid for 10 minutes
+        if (Date.now() - stored.issuedAt > 10 * 60 * 1000) {
+          return null;
+        }
+        return stored.token;
+      } catch (e) {
+        return issueShortLivedToken(shopId);
+      }
+    }
+
+    function generate6DigitCode() {
+      let code = '';
+      do {
+        code = Math.floor(100000 + Math.random() * 900000).toString();
+      } while (state.rewards.some((r) => r.code === code && r.status === 'unlocked'));
+      return code;
+    }
+
+    // =========================================================================
+    // 4. NAVIGATION & LANGUAGE TOGGLE
+    // =========================================================================
+    function toggleLanguage() {
+      state.lang = state.lang === 'hinglish' ? 'english' : 'hinglish';
+      saveState();
+      renderCurrentView();
+    }
+
+    function navigateTo(view, shopId = null) {
+      if (shopId) {
+        state.selectedShopId = shopId;
+        issueShortLivedToken(shopId);
+      }
+      state.currentView = view;
+      saveState();
+      renderCurrentView();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateNavHighlights() {
+      document.getElementById('lang-label').textContent = state.lang === 'hinglish' ? 'Hinglish' : 'English';
+
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute('data-i18n');
+        el.textContent = t(key);
+      });
+
+      const activeKey = state.currentView === 'scan-success' ? 'customer' : state.currentView;
+
+      document.querySelectorAll('.nav-pill').forEach((btn) => {
+        const isMatch = btn.getAttribute('data-nav') === activeKey;
+        if (isMatch) {
+          btn.classList.add('bg-[#0F9D58]', 'text-white', 'shadow-xs');
+          btn.classList.remove('text-neutral-700');
+        } else {
+          btn.classList.remove('bg-[#0F9D58]', 'text-white', 'shadow-xs');
+          btn.classList.add('text-neutral-700');
+        }
+      });
+
+      document.querySelectorAll('.mobile-nav-btn').forEach((btn) => {
+        const isMatch = btn.getAttribute('data-nav') === activeKey;
+        if (isMatch) {
+          btn.classList.add('bg-[#0F9D58]/10', 'text-[#0F9D58]');
+          btn.classList.remove('text-neutral-500');
+        } else {
+          btn.classList.remove('bg-[#0F9D58]/10', 'text-[#0F9D58]');
+          btn.classList.add('text-neutral-500');
+        }
+      });
+    }
+
+    // =========================================================================
+    // 5. WHATSAPP CLOUD API SERVICE LAYER & OWNER ALERTS DRAWER
+    // =========================================================================
+    function updateWhatsAppBadge() {
+      const unreadCount = state.whatsappMessages.filter((m) => m.unread).length;
+      const badge = document.getElementById('wa-badge');
+      if (unreadCount > 0) {
+        badge.textContent = unreadCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function toggleWhatsAppDrawer() {
+      const drawer = document.getElementById('wa-drawer');
+      const backdrop = document.getElementById('wa-drawer-backdrop');
+      const isOpen = !drawer.classList.contains('translate-x-full');
+
+      if (isOpen) {
+        drawer.classList.add('translate-x-full');
+        backdrop.classList.add('hidden');
+      } else {
+        state.whatsappMessages.forEach((m) => (m.unread = false));
+        saveState();
+        renderWhatsAppDrawer();
+        drawer.classList.remove('translate-x-full');
+        backdrop.classList.remove('hidden');
+      }
+    }
+
+    function renderWhatsAppDrawer() {
+      const list = document.getElementById('wa-messages-list');
+      if (!state.whatsappMessages.length) {
+        list.innerHTML = `<div class="text-center text-xs text-neutral-500 py-10">Abhi tak koi WhatsApp alert nahi aaya hai.</div>`;
+        return;
+      }
+
+      list.innerHTML = state.whatsappMessages
+        .map((msg) => {
+          const stamp = msg.stamp_id ? state.stamps.find((s) => s.id === msg.stamp_id) : null;
+          const canCancel = stamp && stamp.status === 'active' && !msg.cancelled;
+
+          return `
