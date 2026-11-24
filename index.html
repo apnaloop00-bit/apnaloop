@@ -282,15 +282,15 @@
 
       <!-- Provider Selector Tabs -->
       <div class="grid grid-cols-3 gap-2 my-4 bg-[#FFF8F0] p-1 rounded-2xl border border-black/5 text-xs font-extrabold">
-        <button onclick="switchDbPanelTab('firebase')" id="db-tab-firebase" class="py-2 rounded-xl bg-[#0F294A] text-white transition-all">Firebase Live</button>
+        <button onclick="switchDbPanelTab('firebase')" id="db-tab-firebase" class="py-2 rounded-xl bg-[#0F294A] text-white transition-all">Legacy Firebase (disabled)</button>
         <button onclick="switchDbPanelTab('supabase')" id="db-tab-supabase" class="py-2 rounded-xl text-neutral-700 hover:bg-white transition-all">Supabase Config</button>
-        <button onclick="switchDbPanelTab('schema')" id="db-tab-schema" class="py-2 rounded-xl text-neutral-700 hover:bg-white transition-all">SQL & Firestore Rules</button>
+        <button onclick="switchDbPanelTab('schema')" id="db-tab-schema" class="py-2 rounded-xl text-neutral-700 hover:bg-white transition-all">Database info</button>
       </div>
 
       <!-- Tab 1: Firebase Config -->
       <div id="db-panel-firebase" class="space-y-3">
         <p class="text-xs text-neutral-600 leading-relaxed">
-          Apna khud ka Firebase project connect karein taaki <strong>shops, stamps, rewards, whatsappMessages</strong> aur <strong>auditLogs</strong> real-time <code class="bg-neutral-100 px-1 rounded">onSnapshot</code> ke saath sync hon. Bina custom config ke bhi local persistent cache automatically kaam karta hai.
+          Firebase bridge production build mein disabled hai. ApnaLoop ka live backend Supabase hai; yahan koi local/demo database use nahi hota.
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -312,7 +312,7 @@
         </div>
         <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
           <button onclick="resetCustomDbConfig()" class="px-3.5 py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-extrabold">
-            Reset to Default / Local Cache
+            Supabase connection status
           </button>
           <button onclick="applyFirebaseConfigFromModal()" class="px-5 py-2.5 rounded-xl bg-[#0F9D58] hover:bg-[#0B7A44] text-white text-xs font-extrabold shadow-sm">
             Connect & Sync Live DB
@@ -323,19 +323,19 @@
       <!-- Tab 2: Supabase URL & Anon Key Config -->
       <div id="db-panel-supabase" class="space-y-3 hidden">
         <p class="text-xs text-neutral-600 leading-relaxed">
-          Agar aap production backend ke liye <strong>Supabase PostgreSQL</strong> use kar rahe hain, to yahan apna Supabase Project URL aur Anon Key save karein aur neeche SQL tab se schema run karein.
+          ApnaLoop ka Supabase project code mein securely configured hai. Public publishable key browser use ke liye hai; database access RLS policies se protected hai. Service-role key kabhi browser mein nahi rakhi jaati.
         </p>
         <div>
-          <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Supabase Project URL</label>
+          <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Connected Supabase Project</label>
           <input id="sb-url-input" type="url" placeholder="https://xyzcompany.supabase.co" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
         </div>
         <div>
-          <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Supabase Anon Public Key</label>
+          <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Client publishable key</label>
           <input id="sb-anon-input" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
         </div>
         <div class="flex justify-end gap-2 pt-2">
           <button onclick="applySupabaseConfigFromModal()" class="px-5 py-2.5 rounded-xl bg-[#0F294A] hover:bg-blue-950 text-white text-xs font-extrabold shadow-sm">
-            Save Supabase Endpoint
+            Verify Supabase Connection
           </button>
         </div>
       </div>
@@ -400,7 +400,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );</pre>
         <p class="text-[11px] text-neutral-500">
-          Firestore collections active under <code class="font-mono">/artifacts/{appId}/public/data/{collection}</code>: <span class="font-mono font-bold text-neutral-700">shops, stamps, rewards, whatsappMessages, auditLogs</span>.
+          Legacy Firestore integration is disabled. Live data is stored in Supabase PostgreSQL.
         </p>
       </div>
     </div>
@@ -1830,8 +1830,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       },
       async signOut() { if (this.client) await this.client.auth.signOut(); state.currentCustomer=null;state.ownerShopId=null;state.pendingOtp=null; },
       async seedInitialShopsIfEmpty() {},
-      async upsertRecord() { throw new Error('Unapproved direct browser writes disabled.'); },
-      async patchRecord() { throw new Error('Unapproved direct browser writes disabled.'); },
+      async upsertRecord() { return false; },
+      async patchRecord() { return false; },
       getSavedCustomConfig() { return null; }, saveCustomConfig() {}, clearCustomConfig() {}
     };
   </script>
