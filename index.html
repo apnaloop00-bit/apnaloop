@@ -662,18 +662,6 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     // =========================================================================
     // 6. CORE STAMP, REWARD & CANCELLATION BUSINESS LOGIC
     // =========================================================================
-    async function handleClaimStamp() {
-      const shop=state.shops.find(s=>s.id===state.selectedShopId)||state.shops[0];
-      if(!shop||!state.currentCustomer)return showToast('Pehle mobile OTP verify karein.','warning');
-      if(!state.pendingQrToken)return showToast('Stamp ke liye counter par owner ka LIVE QR scan karein.','warning');
-      const {data,error}=await window.ApnaLoopLiveDB.client.rpc('claim_shop_stamp',{p_shop_id:shop.id,p_qr_token:state.pendingQrToken,p_idempotency_key:crypto.randomUUID()});
-      if(error){const msg=error.message||'Stamp verify nahi ho paya.';if(msg.includes('STAMP_ALREADY_CLAIMED_TODAY'))return showToast('Aaj is shop se stamp mil chuka hai.','warning');if(msg.includes('QR_SESSION_EXPIRED_OR_INVALID'))return showToast('QR expire ho gaya. Owner se naya LIVE QR scan karein.','warning');return showToast(msg,'error');}
-      state.pendingQrToken=null;const params=new URLSearchParams(window.location.search);params.delete('qr');params.delete('shop');window.history.replaceState({},'',window.location.pathname+(params.toString()?'?'+params.toString():''));
-      await refreshCustomerCard(shop.id);
-      state.lastScanSuccess={shopId:shop.id,shopName:shop.name,count:data.stamp_count,rewardText:shop.reward_text,timestamp:new Date(data.created_at||Date.now()).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})};
-      state.currentView='scan-success';renderCurrentView();showToast(data.reward_unlocked?'10 stamps complete! Reward unlock ho gayi 🎉':'Stamp successfully add ho gaya!');
-    }
-
     function getCustomerActiveStamps(shopId, customerId) {
       return state.stamps.filter(
         (s) => s.shop_id === shopId && s.customer_id === customerId && s.status === 'active'
@@ -862,7 +850,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
                   <i data-lucide="store" class="w-4 h-4"></i>
                   <span>${t('cta_setup_shop')}</span>
                 </button>
-                <button onclick="navigateTo('customer', 'sharma-chai')" class="px-6 py-4 rounded-2xl bg-[#FFF8F0] hover:bg-orange-100/70 text-[#1A1A1A] border border-black/10 font-extrabold text-sm flex items-center justify-center gap-2 transition-all">
+                <button onclick="navigateTo('customer')" class="px-6 py-4 rounded-2xl bg-[#FFF8F0] hover:bg-orange-100/70 text-[#1A1A1A] border border-black/10 font-extrabold text-sm flex items-center justify-center gap-2 transition-all">
                   <i data-lucide="qr-code" class="w-4 h-4 text-[#FF6B00]"></i>
                   <span>${t('cta_open_card')}</span>
                 </button>
@@ -995,7 +983,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
             <span>Dukaan Chunein:</span>
           </div>
           <select onchange="navigateTo('customer', this.value)" class="text-xs sm:text-sm font-extrabold bg-[#FFF8F0] border border-black/10 rounded-xl px-3 py-2 text-[#1A1A1A] focus:outline-none">
-            ${state.shops
+            ${state.shops.filter((s) => s.is_active)
               .map((s) => `<option value="${s.id}" ${s.id === shop.id ? 'selected' : ''}>${s.name} (${s.category})</option>`)
               .join('')}
           </select>
@@ -1207,7 +1195,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
     function mountCustomerRewardQR() {
       const shop = state.shops.find((s) => s.id === state.selectedShopId) || state.shops[0];
-      if (!state.currentCustomer) return;
+      if (!shop || !state.currentCustomer) return;
       const unlocked = getCustomerUnlockedReward(shop.id, state.currentCustomer.id);
       if (unlocked) {
         const redeemUrl = new URL(window.location.origin + '/');
@@ -1864,7 +1852,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
           .select('id,name,slug,business_type,city,description,is_active,created_at,owner_user_id')
           .order('created_at', { ascending: false });
         if (error) throw error;
-        state.shops = (data || []).map(x => ({ id:x.id, name:x.name, phone:'', category:x.business_type,
+        state.shops = (data || []).map(x => ({ id:x.id, name:x.name, phone:'', is_active:x.is_active, category:x.business_type,
           reward_text:x.description || '10 stamps par reward', city:x.city, slug:x.slug, lat:null,lng:null,
           subscription_status:'Trial',created_at:x.created_at,owner_user_id:x.owner_user_id }));
         if (!state.selectedShopId && state.shops.length) state.selectedShopId = state.shops[0].id;
