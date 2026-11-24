@@ -530,7 +530,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       if (error) throw error;
       state.dashboardStats = { shopId, ...(data?.stats || {}) };
       const rows = Array.isArray(data?.recent_activity) ? data.recent_activity : [];
-      state.stamps = state.stamps.filter(s=>s.shop_id!==shopId).concat(rows.map(s=>({ id:s.id,shop_id:s.shop_id,customer_id:s.customer_id,customer_name:s.customer_name,customer_phone:(s.customer_phone||'').replace(/^\\+91/,''),status:s.status||'active',created_at:s.created_at })));
+      state.stamps = state.stamps.filter(s=>s.shop_id!==shopId).concat(rows.map(s=>({ id:s.id,shop_id:s.shop_id,customer_id:s.customer_id,customer_name:s.customer_name,customer_phone:(s.customer_phone||'').replace(/^\\+91/,''),status:s.status||'active',created_at:s.created_at,stamp_count:Number(s.stamp_count||0) })));
       return data;
     }
     async function refreshLiveShopQR() {
@@ -752,7 +752,36 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     }
 
     async function handleClaimStamp() {
-      showToast('Secure QR stamp service abhi setup ho raha hai. Browser-only stamps disabled hain.', 'warning');
+      const shop = state.shops.find(s => s.id === state.selectedShopId);
+      if (!shop || !state.currentCustomer) return showToast('Pehle mobile OTP verify karein.', 'warning');
+      if (!state.pendingQrToken) return showToast('Stamp ke liye counter par owner ka LIVE QR scan karein.', 'warning');
+      if (!window.ApnaLoopLiveDB?.client) return showToast('Live database abhi connect nahi hai.', 'error');
+      const button = document.getElementById('claim-stamp-btn');
+      if (button) { button.disabled = true; button.textContent = 'Stamp verify ho raha hai…'; }
+      const { data, error } = await window.ApnaLoopLiveDB.client.rpc('claim_shop_stamp', {
+        p_shop_id: shop.id, p_qr_token: state.pendingQrToken, p_idempotency_key: crypto.randomUUID()
+      });
+      if (error) {
+        const msg = error.message || 'Stamp verify nahi ho paya.';
+        if (msg.includes('STAMP_ALREADY_CLAIMED_TODAY')) showToast('Aaj is shop se stamp mil chuka hai.', 'warning');
+        else if (msg.includes('QR_SESSION_EXPIRED_OR_INVALID')) showToast('QR expire ho gaya. Owner se naya LIVE QR scan karein.', 'warning');
+        else showToast(msg, 'error');
+        if (button) { button.disabled = false; button.textContent = 'Stamp Claim Karein'; }
+        return;
+      }
+      state.pendingQrToken = null;
+      const params = new URLSearchParams(window.location.search);
+      params.delete('qr'); params.delete('shop');
+      window.history.replaceState({}, '', window.location.pathname + (params.toString() ? '?' + params.toString() : ''));
+      await refreshCustomerCard(shop.id);
+      state.lastScanSuccess = {
+        shopId: shop.id, shopName: shop.name, count: data.stamp_count,
+        rewardText: data.reward_title || shop.reward_text,
+        timestamp: new Date(data.created_at || Date.now()).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+      };
+      state.currentView = 'scan-success';
+      renderCurrentView();
+      showToast(data.reward_unlocked ? '10 stamps complete! Reward unlock ho gayi 🎉' : 'Stamp successfully add ho gaya!');
     }
 
     function renderCurrentView() {
@@ -1180,7 +1209,10 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       if (!state.currentCustomer) return;
       const unlocked = getCustomerUnlockedReward(shop.id, state.currentCustomer.id);
       if (unlocked) {
-        mountQRCode('customer-reward-qr', `APNALOOP-REDEEM:${unlocked.code}`, 130);
+        const redeemUrl = new URL(window.location.origin + '/');
+        redeemUrl.searchParams.set('redeem', unlocked.code);
+        redeemUrl.searchParams.set('shop', shop.id);
+        mountQRCode('customer-reward-qr', redeemUrl.toString(), 130);
       }
     }
 
@@ -1513,7 +1545,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
               <div class="divide-y divide-neutral-100">
                 ${recentActivity
                   .map((st) => {
-                    const custCount = getCustomerActiveStamps(shop.id, st.customer_id).length;
+                    const custCount = Number.isFinite(st.stamp_count) ? st.stamp_count : getCustomerActiveStamps(shop.id, st.customer_id).length;
                     const isCancelled = st.status === 'cancelled';
                     const isRedeemedCycle = st.status === 'redeemed_cycle';
 
@@ -1799,8 +1831,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       status: 'connecting', modeLabel: 'Connecting to Supabase…', projectLabel: 'ApnaLoop Mumbai', client: null,
       async init() {
         try {
-          const params=new URLSearchParams(window.location.search); const scannedShop=params.get('shop'); const scannedToken=params.get('qr');
+          const params=new URLSearchParams(window.location.search); const scannedShop=params.get('shop'); const scannedToken=params.get('qr'); const scannedRedeem=params.get('redeem');
           if(scannedToken&&scannedShop){state.selectedShopId=scannedShop;state.pendingQrToken=scannedToken;state.currentView='customer';}
+          if(scannedRedeem&&/^\\d{6}$/.test(scannedRedeem)&&scannedShop){state.ownerShopId=scannedShop;state.selectedShopId=scannedShop;redeemCodeBuffer=scannedRedeem;state.currentView='redeem';}
           if (!window.supabase?.createClient) throw new Error('Supabase JS library load nahi hui.');
           this.client = window.supabase.createClient('https://aebdkkczseaytavprnjo.supabase.co',
             'sb_publishable_GYcxh0kfdI53XKw0bqQ1kg_XpP3KtWE',
@@ -1815,6 +1848,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
           if(state.pendingQrToken&&state.currentCustomer)await handleClaimStamp();
           else if(state.currentView==='customer'&&state.currentCustomer&&state.selectedShopId){await refreshCustomerCard(state.selectedShopId);renderCurrentView();}
           if(state.ownerShopId)await refreshShopDashboard(state.ownerShopId);
+          this.setupRealtime();
         } catch (error) {
           console.error('Supabase connection failed:', error);
           this.status = 'error'; this.modeLabel = 'Database connection issue'; this.lastError = error.message;
@@ -1840,7 +1874,28 @@ CREATE TABLE IF NOT EXISTS subscriptions (
         if (data) state.currentCustomer = { id:user.id,name:data.display_name || 'Customer',
           phone:(data.phone_e164 || user.phone || '').replace(/^\\+91/,''),verified_at:new Date().toISOString() };
       },
-      async signOut() { if (this.client) await this.client.auth.signOut(); state.currentCustomer=null;state.ownerShopId=null;state.pendingOtp=null; },
+      setupRealtime() {
+        if (!this.client) return;
+        if (this.realtimeChannel) this.client.removeChannel(this.realtimeChannel);
+        const userKey = state.currentCustomer?.id || state.ownerShopId || 'session';
+        this.realtimeChannel = this.client.channel('apnaloop-loyalty-' + userKey)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'stamp_events' }, async () => {
+            try {
+              if (state.currentCustomer && state.selectedShopId) await refreshCustomerCard(state.selectedShopId);
+              if (state.ownerShopId) await refreshShopDashboard(state.ownerShopId);
+              if (['customer','dashboard'].includes(state.currentView)) renderCurrentView();
+            } catch (e) { console.warn('Realtime refresh skipped:', e.message); }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'reward_redemptions' }, async () => {
+            try {
+              if (state.currentCustomer && state.selectedShopId) await refreshCustomerCard(state.selectedShopId);
+              if (state.ownerShopId) await refreshShopDashboard(state.ownerShopId);
+              if (['customer','dashboard'].includes(state.currentView)) renderCurrentView();
+            } catch (e) { console.warn('Realtime refresh skipped:', e.message); }
+          })
+          .subscribe();
+      },
+      async signOut() { if (this.realtimeChannel) this.client?.removeChannel(this.realtimeChannel); if (this.client) await this.client.auth.signOut(); state.currentCustomer=null;state.ownerShopId=null;state.pendingOtp=null; },
       async seedInitialShopsIfEmpty() {},
       async upsertRecord() { return false; },
       async patchRecord() { return false; },
