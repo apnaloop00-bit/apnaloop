@@ -752,6 +752,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       if (error) {
         const msg = error.message || 'Stamp verify nahi ho paya.';
         if (msg.includes('STAMP_ALREADY_CLAIMED_TODAY')) showToast('Aaj is shop se stamp mil chuka hai.', 'warning');
+        else if (msg.includes('REWARD_PENDING_REDEMPTION')) showToast('Pehle apna unlocked reward counter par redeem karwayein.', 'warning');
         else if (msg.includes('QR_SESSION_EXPIRED_OR_INVALID')) showToast('QR expire ho gaya. Owner se naya LIVE QR scan karein.', 'warning');
         else showToast(msg, 'error');
         if (button) { button.disabled = false; button.textContent = 'Stamp Claim Karein'; }
