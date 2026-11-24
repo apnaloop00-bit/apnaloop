@@ -776,7 +776,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       await refreshCustomerCard(shop.id);
       state.lastScanSuccess = {
         shopId: shop.id, shopName: shop.name, count: data.stamp_count,
-        rewardText: data.reward_title || shop.reward_text,
+        rewardText: data.reward_title || shop.reward_text, rewardUnlocked: data.reward_unlocked === true,
         timestamp: new Date(data.created_at || Date.now()).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
       };
       state.currentView = 'scan-success';
@@ -1274,6 +1274,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
         return renderCustomerCardView();
       }
       const remaining = Math.max(0, 10 - info.count);
+      const rewardUnlocked = info.rewardUnlocked === true;
 
       return `
         <div class="max-w-md mx-auto view-enter">
@@ -1297,7 +1298,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
             <div class="p-4 rounded-2xl bg-[#FFF8F0] border border-orange-200/70">
               <p class="text-3xl font-extrabold text-[#1A1A1A] tabular-nums">${info.count} <span class="text-base font-bold text-neutral-400">/ 10 Stamps</span></p>
               <p class="text-xs font-bold text-[#FF6B00] mt-1">
-                ${remaining} stamps aur, phir ${info.rewardText}!
+                ${rewardUnlocked ? '🎉 10 stamps complete! Aapka reward unlock ho gaya.' : remaining + ' stamps aur, phir ' + info.rewardText + '!'}
               </p>
             </div>
 
@@ -1848,8 +1849,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
           if(scannedShop&&state.shops.some(s=>s.id===scannedShop))state.selectedShopId=scannedShop;
           if(state.pendingQrToken&&state.currentCustomer)await handleClaimStamp();
           else if(state.currentView==='customer'&&state.currentCustomer&&state.selectedShopId){await refreshCustomerCard(state.selectedShopId);renderCurrentView();}
-          if(state.ownerShopId)await refreshShopDashboard(state.ownerShopId);
+          if(state.ownerShopId && !scannedRedeem) await refreshShopDashboard(state.ownerShopId);
           this.setupRealtime();
+          renderCurrentView();
         } catch (error) {
           console.error('Supabase connection failed:', error);
           this.status = 'error'; this.modeLabel = 'Database connection issue'; this.lastError = error.message;
