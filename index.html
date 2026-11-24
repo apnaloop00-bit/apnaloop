@@ -1110,7 +1110,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       const count = Math.min(10, activeStamps.length);
       const remaining = Math.max(0, 10 - count);
       const pct = (count / 10) * 100;
-      const stampedToday = activeStamps.some((s) => isSameDay(s.created_at, new Date().toISOString()));
+      const indiaToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+      const stampedToday = activeStamps.some((s) => s.stamp_date === indiaToday);
 
       const slotsHtml = Array.from({ length: 10 }, (_, idx) => {
         const slotNum = idx + 1;
