@@ -4,7 +4,7 @@
 - GitHub repository: https://github.com/apnaloop00-bit/apnaloop (main branch retained; work isolated on `feat/supabase-live-foundation`).
 - Supabase project: `apnaloop-live`, ref `aebdkkczseaytavprnjo`, Mumbai region.
 - Vercel project: `apnaloop`, existing production deployment READY. Deployment protection currently requires Vercel SSO on deployment URLs.
-- Vercel Git context currently reports no linked Git projects. Do not create a replacement Vercel project; connect the existing project to this repository through its Git settings after confirming the Git provider integration.
+- Existing Vercel project is now connected to this GitHub repository; automatic development-branch deployments are verified. Preview URLs still require Vercel SSO.
 
 ## Prototype audit
 The uploaded HTML is preserved at `prototype/index.html`. It is a single-file Tailwind/Lucide/QRCode.js prototype. Its existing screens include customer registration/card, shop onboarding/dashboard, reward redemption, admin, WhatsApp drawer, QR standee and language switching.
@@ -41,14 +41,14 @@ Security posture:
 ## Not yet production-ready
 - Replace fake OTP with Supabase Phone Auth and a configured SMS provider.
 - Replace localStorage state with authenticated Supabase reads and writes.
-- Implement server-validated, transactional stamp issuance and reward redemption (including six-digit redemption codes and one-stamp-per-shop-per-India-day constraints).
-- Add secure QR session issuance/verification, abuse throttling, and server-side geofence validation where applicable.
+- Secure server-side QR stamp issuance, India-day duplicate protection, 10-stamp reward unlock and one-time six-digit redemption have been implemented and SQL integration-tested. Full browser/mobile E2E remains pending.
+- QR sessions and redemption-code brute-force throttling are implemented; server-side geofence validation remains pending if required.
 - Complete owner/customer/admin role model and review every RLS policy against actual app journeys.
 - Add server-side Razorpay order/signature/webhook handling; ₹149 subscription and 30-day trial enforcement.
 - Add WhatsApp Cloud API templates, consent handling, queue delivery and Sunday digest scheduler.
 - Add PWA manifest, icons and service worker.
 - Run the 15 end-to-end journeys and browser/mobile tests.
-- Connect the existing Vercel project to GitHub. Do not expose secrets in client code; only the Supabase publishable key may be browser-visible.
+- Existing Vercel project is connected to GitHub. Do not expose secrets in client code; only the Supabase publishable key may be browser-visible.
 - Confirm public production access intentionally; existing Vercel SSO protection is enabled on deployment URLs.
 
 ## Deployment rule
@@ -75,7 +75,7 @@ Do not deploy this prototype branch as a production application until authentica
 - Razorpay, WhatsApp Cloud API, PWA manifest/service worker and full E2E test suite remain outstanding.
 
 ## Latest security advisor
-The two SECURITY DEFINER trigger functions are now restricted to trigger execution only; the security advisor no longer reports public/authenticated execution warnings. The only remaining lint is the informational no-client-policy finding on service-only `otp_verifications`.
+Privileged loyalty SECURITY DEFINER functions now live in the non-exposed `private` schema behind SECURITY INVOKER public RPCs. Remaining informational no-policy notices apply to internal-only tables (`customer_rewards`, `otp_verifications`, `qr_sessions`, `reward_claims`, `reward_redemption_attempts`) whose direct client privileges are revoked.
 
 
 ## Development milestone 2 — secure loyalty transactions (25 Nov 2026)
