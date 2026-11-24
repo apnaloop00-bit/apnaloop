@@ -970,7 +970,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     // SCREEN 2 & 4: CUSTOMER STAMP CARD (/s/[shopId]) + REWARD UNLOCKED GOLD VIEW
     // -------------------------------------------------------------------------
     function renderCustomerCardView() {
-      const shop = state.shops.find((s) => s.id === state.selectedShopId) || state.shops[0];
+      const shop = state.shops.find((s) => s.id === state.selectedShopId && s.is_active) || state.shops.find((s) => s.is_active);
       if (!shop) return `<div class="max-w-lg mx-auto bg-white rounded-3xl p-8 text-center shadow-sm"><div class="text-4xl mb-3">🏪</div><h2 class="text-xl font-extrabold">Abhi koi active shop nahi hai</h2><p class="text-sm text-neutral-500 mt-2">Jab shops ApnaLoop par register hongi, yahan unke loyalty cards dikhenge.</p><button onclick="navigateTo('home')" class="mt-5 px-5 py-3 rounded-xl bg-[#0F9D58] text-white font-bold">Home par jao</button></div>`;
       const catMeta = CATEGORY_META[shop.category] || CATEGORY_META.Other;
       const customer = state.currentCustomer;
@@ -1194,7 +1194,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     }
 
     function mountCustomerRewardQR() {
-      const shop = state.shops.find((s) => s.id === state.selectedShopId) || state.shops[0];
+      const shop = state.shops.find((s) => s.id === state.selectedShopId && s.is_active) || state.shops.find((s) => s.is_active);
       if (!shop || !state.currentCustomer) return;
       const unlocked = getCustomerUnlockedReward(shop.id, state.currentCustomer.id);
       if (unlocked) {
@@ -1855,7 +1855,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
         state.shops = (data || []).map(x => ({ id:x.id, name:x.name, phone:'', is_active:x.is_active, category:x.business_type,
           reward_text:x.description || '10 stamps par reward', city:x.city, slug:x.slug, lat:null,lng:null,
           subscription_status:'Trial',created_at:x.created_at,owner_user_id:x.owner_user_id }));
-        if (!state.selectedShopId && state.shops.length) state.selectedShopId = state.shops[0].id;
+        if (!state.selectedShopId || !state.shops.some(x => x.id === state.selectedShopId && x.is_active)) {
+          state.selectedShopId = state.shops.find(x => x.is_active)?.id || null;
+        }
         const { data: u } = await this.client.auth.getUser();
         const mine = state.shops.find(x => x.owner_user_id === u?.user?.id);
         if (mine) state.ownerShopId = mine.id;
