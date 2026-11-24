@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ApnaLoop — QR Loyalty for Indian Small Shops</title>
+  <meta name="theme-color" content="#0F9D58" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="ApnaLoop" />
+
+  <!-- Google Fonts: Plus Jakarta Sans & Hind -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '"Hind"', 'sans-serif'],
+            hindi: ['"Hind"', 'sans-serif']
+          },
+          colors: {
+            brandGreen: '#0F9D58',
+            brandOrange: '#FF6B00',
+            brandCream: '#FFF8F0',
+            brandDark: '#1A1A1A'
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', 'Hind', sans-serif;
+      background-color: #FFF8F0;
+      color: #1A1A1A;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Stamp pop animation */
+    @keyframes stampPop {
+      0% { transform: scale(0.3) rotate(-25deg); opacity: 0; }
+      70% { transform: scale(1.15) rotate(6deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .animate-stamp-pop {
+      animation: stampPop 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Smooth view entrance */
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .view-enter {
+      animation: fadeSlideUp 0.28s ease-out forwards;
+    }
+
+    /* Gold shimmer for 10/10 Reward Unlocked */
+    .gold-card {
+      background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 45%, #FDE68A 100%);
+      border: 2px solid #F59E0B;
+    }
+
+    /* Print Standee Styling */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printable-standee-area,
+      #printable-standee-area * {
+        visibility: visible !important;
+      }
+      #printable-standee-area {
+        position: fixed !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 380px !important;
+        box-shadow: none !important;
+        border: 3px solid #1A1A1A !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col pb-24 lg:pb-10">
+
+  <!-- Sticky Top App Header -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-black/5 no-print">
+    <div class="max-w-5xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+      <!-- Brand Logo (Dark Blue & Gold ApnaLoop Mark) -->
+      <button onclick="navigateTo('home')" class="flex items-center gap-2.5 text-left group focus:outline-none">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#0F294A] to-[#1E3A8A] border border-[#D4AF37]/60 flex items-center justify-center text-[#F5C451] shadow-sm group-hover:scale-105 transition-transform">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.739-8-4.585 0-4.585 8 0 8 5.606 0 7.644-8 12.74-8z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-extrabold text-lg sm:text-xl tracking-tight text-[#0F294A]">Apna<span class="text-[#D4AF37]">Loop</span></span>
+            <span class="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-[#0F9D58]/10 text-[#0F9D58]">PWA</span>
+          </div>
+          <p class="text-[11px] text-neutral-500 -mt-0.5 hidden xs:block" data-i18n="tagline_short">QR Loyalty • Zero Jhanjhat</p>
+        </div>
+      </button>
+
+      <!-- Desktop Navigation Links -->
+      <nav class="hidden lg:flex items-center gap-1 bg-[#FFF8F0] p-1 rounded-2xl border border-black/5">
+        <button onclick="navigateTo('home')" data-nav="home" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_home">Home</button>
+        <button onclick="navigateTo('customer')" data-nav="customer" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_card">Stamp Card</button>
+        <button onclick="navigateTo('onboarding')" data-nav="onboarding" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_setup">Shop QR</button>
+        <button onclick="navigateTo('dashboard')" data-nav="dashboard" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_dashboard">Dashboard</button>
+        <button onclick="navigateTo('redeem')" data-nav="redeem" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_redeem">Redeem</button>
+      </nav>
+
+      <!-- Right Controls: Live DB Pill, Language Toggle, WhatsApp Alerts, Install PWA, Super Admin -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <!-- Live DB Status Pill -->
+        <button onclick="openLiveDbModal()" id="live-db-pill" title="Live Database Status & Custom Connection" class="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-xs font-extrabold text-[#0F9D58] flex items-center gap-1.5 transition-colors">
+          <span id="live-db-dot" class="w-2 h-2 rounded-full bg-[#0F9D58] animate-pulse"></span>
+          <span id="live-db-label" class="hidden md:inline">Live DB</span>
+        </button>
+
+        <!-- Hinglish / English Toggle -->
+        <button onclick="toggleLanguage()" id="lang-toggle-btn" title="Switch Language" class="px-2.5 py-1.5 rounded-xl bg-[#FFF8F0] hover:bg-orange-100/70 border border-black/10 text-xs font-bold text-[#1A1A1A] flex items-center gap-1.5 transition-colors">
+          <span class="w-2 h-2 rounded-full bg-[#FF6B00]"></span>
+          <span id="lang-label">Hinglish</span>
+        </button>
+
+        <!-- WhatsApp Alerts Feed Drawer Button -->
+        <button onclick="toggleWhatsAppDrawer()" title="Owner WhatsApp Alerts" class="relative p-2 rounded-xl bg-[#0F9D58]/10 hover:bg-[#0F9D58]/20 text-[#0F9D58] transition-colors">
+          <i data-lucide="message-circle" class="w-4 h-4"></i>
+          <span id="wa-badge" class="hidden absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#FF6B00] text-white text-[10px] font-extrabold flex items-center justify-center tabular-nums">0</span>
+        </button>
+
+        <!-- Install PWA Button -->
+        <button onclick="openPwaModal()" title="Install App on Phone" class="p-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition-colors">
+          <i data-lucide="smartphone" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Super Admin Link -->
+        <button onclick="navigateTo('admin')" data-nav="admin" class="nav-pill px-2.5 py-1.5 rounded-xl border border-black/10 text-xs font-bold text-neutral-700 hover:bg-neutral-100 flex items-center gap-1 transition-colors">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-[#0F9D58]"></i>
+          <span class="hidden sm:inline" data-i18n="nav_admin">Admin</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Toast Notification Banner -->
+  <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md pointer-events-none flex flex-col gap-2 no-print"></div>
+
+  <!-- Main Dynamic App Container -->
+  <main id="app-root" class="flex-1 w-full max-w-5xl mx-auto px-3 sm:px-6 pt-5 pb-8"></main>
+
+  <!-- Mobile Bottom Navigation Bar (App Ergonomics) -->
+  <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-black/10 px-2 py-1.5 no-print">
+    <div class="max-w-md mx-auto grid grid-cols-5 gap-1">
+      <button onclick="navigateTo('home')" data-nav="home" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="home" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_home">Home</span>
+      </button>
+      <button onclick="navigateTo('customer')" data-nav="customer" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="stamp" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_card">Card</span>
+      </button>
+      <button onclick="navigateTo('onboarding')" data-nav="onboarding" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="qr-code" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_setup">Shop QR</span>
+      </button>
+      <button onclick="navigateTo('dashboard')" data-nav="dashboard" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="bar-chart-3" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_dashboard">Owner</span>
+      </button>
+      <button onclick="navigateTo('redeem')" data-nav="redeem" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="gift" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_redeem">Redeem</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- WhatsApp Cloud API Live Alerts Drawer -->
+  <div id="wa-drawer-backdrop" onclick="toggleWhatsAppDrawer()" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs hidden no-print"></div>
+  <aside id="wa-drawer" class="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-[#ECE5DD] shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col no-print">
+    <!-- WhatsApp Header -->
+    <div class="bg-[#075E54] text-white px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center font-extrabold text-sm">AL</div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h3 class="font-bold text-sm">ApnaLoop WhatsApp Bot</h3>
+            <span class="w-2 h-2 rounded-full bg-[#25D366]"></span>
+          </div>
+          <p class="text-[11px] text-emerald-100">Owner Instant Alerts & Sunday Digest</p>
+        </div>
+      </div>
+      <button onclick="toggleWhatsAppDrawer()" class="p-2 rounded-full hover:bg-white/10">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Messages Feed -->
+    <div id="wa-messages-list" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+
+    <!-- Sunday 9:00 AM Weekly Digest Action -->
+    <div class="p-3 bg-white border-t border-black/10 flex items-center justify-between gap-2">
+      <div class="text-xs text-neutral-600">
+        <span class="font-bold text-[#1A1A1A]">Sunday 9:00 AM Digest</span>
+        <p class="text-[11px]">Weekly summary alert to owner</p>
+      </div>
+      <button onclick="sendWeeklySundayDigest()" class="px-3 py-2 rounded-xl bg-[#0F9D58] hover:bg-[#0c8248] text-white text-xs font-bold flex items-center gap-1.5 shrink-0">
+        <i data-lucide="send" class="w-3.5 h-3.5"></i>
+        <span>Send Digest</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Install App (PWA) Modal -->
+  <div id="pwa-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/50 backdrop-blur-xs no-print">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 relative view-enter">
+      <button onclick="closePwaModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600">✕</button>
+      <div class="w-12 h-12 rounded-2xl bg-[#0F9D58]/10 text-[#0F9D58] flex items-center justify-center mb-4">
+        <i data-lucide="smartphone" class="w-6 h-6"></i>
+      </div>
+      <h3 class="text-lg font-extrabold text-[#1A1A1A]">ApnaLoop App Install Karein</h3>
+      <p class="text-sm text-neutral-600 mt-1">Bina Play Store ke seedha apne phone ki Home Screen par app jaisa icon lagayein:</p>
+      <div class="mt-4 space-y-2.5 text-xs">
+        <div class="p-3 rounded-2xl bg-[#FFF8F0] border border-orange-200/60">
+          <p class="font-bold text-[#1A1A1A]">Android (Chrome):</p>
+          <p class="text-neutral-600 mt-0.5">Upar right mein <strong>⋮ (3 dots)</strong> dabayein → <strong>"Add to Home screen"</strong> ya <strong>"Install app"</strong> chunein.</p>
+        </div>
+        <div class="p-3 rounded-2xl bg-[#FFF8F0] border border-orange-200/60">
+          <p class="font-bold text-[#1A1A1A]">iPhone (Safari):</p>
+          <p class="text-neutral-600 mt-0.5">Neeche <strong>Share (↑)</strong> icon dabayein → <strong>"Add to Home Screen"</strong> par tap karein.</p>
+        </div>
+      </div>
+      <button onclick="closePwaModal()" class="mt-5 w-full py-3 rounded-2xl bg-[#1A1A1A] text-white font-bold text-sm">Samajh Gaya</button>
+    </div>
+  </div>
+
+  <!-- Live Database Status, Custom Firebase/Supabase Config & SQL Schema Modal -->
+  <div id="live-db-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-black/55 backdrop-blur-xs overflow-y-auto no-print">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-black/10 relative my-auto view-enter max-h-[90vh] overflow-y-auto">
+      <div class="flex items-start justify-between gap-3 pb-4 border-b border-neutral-100">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-[#0F294A] text-[#F5C451] flex items-center justify-center shrink-0">
+            <i data-lucide="database" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-extrabold text-base sm:text-lg text-[#1A1A1A]">Live Database & Backend Schema</h3>
+              <span id="db-modal-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-[#0F9D58]">ACTIVE</span>
+            </div>
+            <p id="db-modal-subtitle" class="text-xs text-neutral-500 mt-0.5"></p>
+          </div>
+        </div>
+        <button onclick="closeLiveDbModal()" class="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 shrink-0">✕</button>
+      </div>
+
+      <!-- Provider Selector Tabs -->
+      <div class="grid grid-cols-3 gap-2 my-4 bg-[#FFF8F0] p-1 rounded-2xl border border-black/5 text-xs font-extrabold">
+        <button onclick="switchDbPanelTab('firebase')" id="db-tab-firebase" class="py-2 rounded-xl bg-[#0F294A] text-white transition-all">Legacy Firebase (disabled)</button>
+        <button onclick="switchDbPanelTab('supabase')" id="db-tab-supabase" class="py-2 rounded-xl text-neutral-700 hover:bg-white transition-all">Supabase Config</button>
+        <button onclick="switchDbPanelTab('schema')" id="db-tab-schema" class="py-2 rounded-xl text-neutral-700 hover:bg-white transition-all">Database info</button>
+      </div>
+
+      <!-- Tab 1: Firebase Config -->
+      <div id="db-panel-firebase" class="space-y-3">
+        <p class="text-xs text-neutral-600 leading-relaxed">
+          Firebase bridge production build mein disabled hai. ApnaLoop ka live backend Supabase hai; yahan koi local/demo database use nahi hota.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Firebase API Key</label>
+            <input id="fb-api-key" type="text" placeholder="AIzaSy..." class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Project ID</label>
+            <input id="fb-project-id" type="text" placeholder="apnaloop-prod" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Auth Domain (Optional)</label>
+            <input id="fb-auth-domain" type="text" placeholder="apnaloop-prod.firebaseapp.com" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">App ID (Optional)</label>
+            <input id="fb-app-id" type="text" placeholder="1:123456:web:abcdef" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
+          <button onclick="resetCustomDbConfig()" class="px-3.5 py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-extrabold">
+            Supabase connection status
+          </button>
+          <button onclick="applyFirebaseConfigFromModal()" class="px-5 py-2.5 rounded-xl bg-[#0F9D58] hover:bg-[#0B7A44] text-white text-xs font-extrabold shadow-sm">
+            Connect & Sync Live DB
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Supabase URL & Anon Key Config -->
+      <div id="db-panel-supabase" class="space-y-3 hidden">
+        <p class="text-xs text-neutral-600 leading-relaxed">
+          ApnaLoop ka Supabase project code mein securely configured hai. Public publishable key browser use ke liye hai; database access RLS policies se protected hai. Service-role key kabhi browser mein nahi rakhi jaati.
+        </p>
+        <div>
+          <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Connected Supabase Project</label>
+          <input id="sb-url-input" type="url" placeholder="https://xyzcompany.supabase.co" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Client publishable key</label>
+          <input id="sb-anon-input" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="applySupabaseConfigFromModal()" class="px-5 py-2.5 rounded-xl bg-[#0F294A] hover:bg-blue-950 text-white text-xs font-extrabold shadow-sm">
+            Verify Supabase Connection
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 3: Copyable SQL Schema & Firestore Structure -->
+      <div id="db-panel-schema" class="space-y-3 hidden">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-extrabold text-[#1A1A1A]">Supabase PostgreSQL Schema (shops, customers, stamps, rewards, subscriptions)</span>
+          <button onclick="copySqlSchema()" class="px-3 py-1.5 rounded-xl bg-[#0F9D58] text-white text-xs font-extrabold flex items-center gap-1.5">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Copy SQL</span>
+          </button>
+        </div>
+        <pre id="sql-schema-code" class="p-3.5 rounded-2xl bg-[#1A1A1A] text-emerald-300 text-[11px] font-mono overflow-x-auto leading-relaxed max-h-60">CREATE TABLE IF NOT EXISTS shops (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  category TEXT NOT NULL,
+  reward_text TEXT NOT NULL,
+  lat DOUBLE PRECISION,
+  lng DOUBLE PRECISION,
+  subscription_status TEXT NOT NULL DEFAULT 'Trial',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS customers (
+  id TEXT PRIMARY KEY,
+  phone TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS stamps (
+  id TEXT PRIMARY KEY,
+  shop_id TEXT NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  customer_id TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  customer_phone TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS rewards (
+  id TEXT PRIMARY KEY,
+  shop_id TEXT NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  customer_id TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  customer_phone TEXT NOT NULL,
+  reward_text TEXT NOT NULL,
+  code TEXT UNIQUE NOT NULL,
+  status TEXT NOT NULL DEFAULT 'unlocked',
+  redeemed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id TEXT PRIMARY KEY,
+  shop_id TEXT NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  razorpay_order_id TEXT,
+  status TEXT NOT NULL DEFAULT 'trialing',
+  current_period_end TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);</pre>
+        <p class="text-[11px] text-neutral-500">
+          Legacy Firestore integration is disabled. Live data is stored in Supabase PostgreSQL.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. TRANSLATIONS (HINGLISH DEFAULT + LIVE ENGLISH TOGGLE)
+    // =========================================================================
+    const I18N = {
+      hinglish: {
+        tagline_short: 'QR Loyalty • Zero Jhanjhat',
+        nav_home: 'Home',
+        nav_card: 'Stamp Card',
+        nav_setup: 'Shop QR',
+        nav_dashboard: 'Dashboard',
+        nav_redeem: 'Redeem',
+        nav_admin: 'Admin',
+        hero_badge: 'Bina App Download • 100% Indian Dukaano Ke Liye',
+        hero_title: 'Apni dukaan ka apna loyalty card',
+        hero_sub: 'Customer counter par QR scan kare, stamp paaye, aur 10th visit par free reward jeete. Dukaandar ka daily kaam = ZERO.',
+        cta_setup_shop: 'Apni Dukaan Jodein (2 Min)',
+        cta_open_card: 'Customer Card Kholein',
+        how_title: 'Kaise Kaam Karta Hai?',
+        how_cust_title: 'Customer Ke Liye (10 Seconds)',
+        how_owner_title: 'Dukaandar Ke Liye (Zero Kaam)',
+        pricing_title: 'Seedha aur Sasta Plan',
+        pricing_free: 'Pehle 30 Din FREE',
+        pricing_paid: 'Uske baad ₹149/month',
+        pricing_per_day: '₹5 / din se bhi kam',
+        claim_stamp_btn: 'Aaj Ka Stamp Claim Karein',
+        verify_otp_title: 'Pehli Baar Login (OTP Verification)',
+        setup_title: '2-Minute Shop Setup',
+        setup_sub: 'Sirf 3 details bharein aur apna QR Standee turant print karein.',
+        dash_today: 'Aaj ke stamps',
+        dash_repeat: 'Is hafte wapas aaye',
+        dash_total: 'Total customers',
+        redeem_title: '6-Digit Reward Code Verify Karein',
+        redeem_btn: 'Reward Dedo'
+      },
+      english: {
+        tagline_short: 'QR Loyalty • Zero Effort',
+        nav_home: 'Home',
+        nav_card: 'Stamp Card',
+        nav_setup: 'Shop QR',
+        nav_dashboard: 'Dashboard',
+        nav_redeem: 'Redeem',
+        nav_admin: 'Admin',
+        hero_badge: 'No App Download • Built for Indian Local Shops',
+        hero_title: 'Your shop’s own digital loyalty card',
+        hero_sub: 'Customers scan your counter QR, collect stamps, and unlock a free reward on their 10th visit. Daily owner effort = ZERO.',
+        cta_setup_shop: 'Register Your Shop (2 Min)',
+        cta_open_card: 'Open Customer Card',
+        how_title: 'How It Works',
+        how_cust_title: 'For Customers (10 Seconds)',
+        how_owner_title: 'For Shop Owners (Zero Effort)',
+        pricing_title: 'Simple, Transparent Pricing',
+        pricing_free: 'First 30 Days FREE',
+        pricing_paid: 'Then ₹149/month',
+        pricing_per_day: 'Less than ₹5 / day',
+        claim_stamp_btn: "Claim Today's Stamp",
+        verify_otp_title: 'First-Time Login (OTP Verification)',
+        setup_title: '2-Minute Shop Setup',
+        setup_sub: 'Enter just 3 details to generate and print your counter QR standee.',
+        dash_today: "Today's stamps",
+        dash_repeat: 'Returned this week',
+        dash_total: 'Total customers',
+        redeem_title: 'Verify 6-Digit Reward Code',
+        redeem_btn: 'Give Reward'
+      }
+    };
+
+    // =========================================================================
+    // 2. CATEGORY PRESETS & PERSISTENT DATABASE (LOCALSTORAGE + LIVE SYNC)
+    // =========================================================================
+    const CATEGORY_META = {
+      Chai: { emoji: '☕', defaultReward: '1 Masala Chai + Bun Maska FREE', color: 'bg-amber-100 text-amber-800' },
+      Salon: { emoji: '✂️', defaultReward: '1 Haircut ya Head Massage FREE', color: 'bg-purple-100 text-purple-800' },
+      Bakery: { emoji: '🥐', defaultReward: '1 Veg Puff ya Pastry Box FREE', color: 'bg-orange-100 text-orange-800' },
+      Juice: { emoji: '🥤', defaultReward: '1 Fresh Sugarcane / Mango Juice FREE', color: 'bg-emerald-100 text-emerald-800' },
+      'Car Wash': { emoji: '🚗', defaultReward: '1 Full Foam Wash FREE', color: 'bg-blue-100 text-blue-800' },
+      Other: { emoji: '🏪', defaultReward: '₹100 Ka Instant Discount FREE', color: 'bg-neutral-100 text-neutral-800' }
+    };
+
+    const STORAGE_KEY = 'apnaloop_production_db_v1';
+
+    function createInitialState() {
+      return { lang: 'hinglish', currentView: 'home', selectedShopId: null, ownerShopId: null,
+        currentCustomer: null, pendingOtp: null, pendingQrToken: null, lastScanSuccess: null, shops: [], stamps: [],
+        rewards: [], whatsappMessages: [], auditLogs: [], fraudBlockedCount: 0, dashboardStats: null };
+    }
+
+    function loadState() {
+      // Production business records are fetched from Supabase only.
+      try { return { ...createInitialState(), lang: localStorage.getItem('apnaloop_language') || 'hinglish' }; }
+      catch (e) { return createInitialState(); }
+    }
+    let state = loadState();
+    function saveState() {
+      try { localStorage.setItem('apnaloop_language', state.lang || 'hinglish'); } catch (e) {}
+      updateWhatsAppBadge(); updateLiveDbBadge();
+    }
+
+    let liveQrRefreshTimer = null;
+    let redeemResult = null;
+    function navigateTo(view, param) {
+      if (view === 'customer' && param) state.selectedShopId = param;
+      if (view === 'dashboard' && !state.ownerShopId) state.ownerShopId = state.shops.find(s => s.owner_user_id === state.currentCustomer?.id)?.id || null;
+      state.currentView = view; renderCurrentView();
+      if (view !== 'dashboard' && liveQrRefreshTimer) { clearInterval(liveQrRefreshTimer); liveQrRefreshTimer = null; }
+      if (view === 'customer' && state.currentCustomer && state.selectedShopId) refreshCustomerCard(state.selectedShopId).then(renderCurrentView).catch(e => showToast(e.message,'error'));
+      if (view === 'dashboard' && state.ownerShopId) { refreshShopDashboard(state.ownerShopId).then(renderCurrentView).catch(e => showToast(e.message,'error')); mountLiveShopQR(); }
+    }
+    async function refreshCustomerCard(shopId) {
+      if (!window.ApnaLoopLiveDB?.client || !state.currentCustomer) return;
+      const { data, error } = await window.ApnaLoopLiveDB.client.rpc('get_customer_loyalty', { p_shop_id: shopId });
+      if (error) throw error;
+      const rows = Array.isArray(data?.stamps) ? data.stamps : [];
+      state.stamps = state.stamps.filter(s => s.shop_id !== shopId).concat(rows.map(s => ({ id:s.id, shop_id:shopId, customer_id:state.currentCustomer.id, status:'active', created_at:s.created_at, stamp_date:s.stamp_date })));
+      state.rewards = state.rewards.filter(r => r.shop_id !== shopId);
+      if (data?.unlocked_reward) { const shop=state.shops.find(s=>s.id===shopId); state.rewards.unshift({ id:data.unlocked_reward.id, shop_id:shopId, customer_id:state.currentCustomer.id, status:'unlocked', code:data.unlocked_reward.code, reward_text:data.unlocked_reward.title, shop_name:shop?.name||'Shop', customer_name:state.currentCustomer.name, customer_phone:state.currentCustomer.phone }); }
+      return data;
+    }
+    async function refreshShopDashboard(shopId) {
+      if (!window.ApnaLoopLiveDB?.client || !shopId) return;
+      const { data, error } = await window.ApnaLoopLiveDB.client.rpc('get_shop_dashboard', { p_shop_id: shopId });
+      if (error) throw error;
+      state.dashboardStats = { shopId, ...(data?.stats || {}) };
+      const rows = Array.isArray(data?.recent_activity) ? data.recent_activity : [];
+      state.stamps = state.stamps.filter(s=>s.shop_id!==shopId).concat(rows.map(s=>({ id:s.id,shop_id:s.shop_id,customer_id:s.customer_id,customer_name:s.customer_name,customer_phone:(s.customer_phone||'').replace(/^\\+91/,''),status:s.status||'active',created_at:s.created_at,stamp_count:Number(s.stamp_count||0) })));
+      return data;
+    }
+    async function refreshLiveShopQR() {
+      const shop=state.shops.find(s=>s.id===state.ownerShopId), node=document.getElementById('owner-live-shop-qr');
+      if(!shop||!node||!window.ApnaLoopLiveDB?.client)return;
+      const {data,error}=await window.ApnaLoopLiveDB.client.rpc('issue_shop_qr_session',{p_shop_id:shop.id});
+      if(error){const label=document.getElementById('owner-live-shop-qr-status');if(label)label.textContent=error.message;return;}
+      const url=new URL(window.location.origin+'/');url.searchParams.set('shop',shop.id);url.searchParams.set('qr',data.token);
+      mountQRCode('owner-live-shop-qr',url.toString(),190);
+      const label=document.getElementById('owner-live-shop-qr-status');if(label)label.textContent='QR 2 minute tak valid hai; har 90 second mein refresh hota hai.';
+    }
+    function mountLiveShopQR(){if(liveQrRefreshTimer)clearInterval(liveQrRefreshTimer);refreshLiveShopQR();liveQrRefreshTimer=setInterval(()=>{if(state.currentView==='dashboard')refreshLiveShopQR();},90000);}
+
+    function updateWhatsAppBadge() {
+      const unreadCount = state.whatsappMessages.filter((m) => m.unread).length;
+      const badge = document.getElementById('wa-badge');
+      if (unreadCount > 0) {
+        badge.textContent = unreadCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function toggleWhatsAppDrawer() {
+      const drawer = document.getElementById('wa-drawer');
+      const backdrop = document.getElementById('wa-drawer-backdrop');
+      const isOpen = !drawer.classList.contains('translate-x-full');
+
+      if (isOpen) {
+        drawer.classList.add('translate-x-full');
+        backdrop.classList.add('hidden');
+      } else {
+        state.whatsappMessages.forEach((m) => (m.unread = false));
+        saveState();
+        renderWhatsAppDrawer();
+        drawer.classList.remove('translate-x-full');
+        backdrop.classList.remove('hidden');
+      }
+    }
+
+    function renderWhatsAppDrawer() {
+      const list = document.getElementById('wa-messages-list');
+      if (!state.whatsappMessages.length) {
+        list.innerHTML = `<div class="text-center text-xs text-neutral-500 py-10">Abhi tak koi WhatsApp alert nahi aaya hai.</div>`;
+        return;
+      }
+
+      list.innerHTML = state.whatsappMessages
+        .map((msg) => {
+          const stamp = msg.stamp_id ? state.stamps.find((s) => s.id === msg.stamp_id) : null;
+          const canCancel = stamp && stamp.status === 'active' && !msg.cancelled;
+
+          return `
+            <div class="bg-white rounded-2xl p-3.5 shadow-xs border border-black/5 max-w-[92%]">
+              <p class="text-xs sm:text-sm text-[#1A1A1A] font-medium leading-relaxed">${msg.text}</p>
+              <div class="flex items-center justify-between mt-2 pt-2 border-t border-neutral-100">
+                <span class="text-[10px] text-neutral-400 tabular-nums">${formatTimeAgo(msg.timestamp)} • WhatsApp Cloud API</span>
+                ${
+                  msg.cancelled
+                    ? `<span class="text-[11px] font-bold text-red-600">❌ Stamp Cancelled</span>`
+                    : canCancel
+                    ? `<button onclick="cancelStampById('${msg.stamp_id}')" class="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-extrabold transition-colors">[ Galat hai, Cancel Karo ]</button>`
+                    : `<span class="text-[10px] font-bold text-[#0F9D58]">✓ Verified</span>`
+                }
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    function sendWhatsAppAlert(shop, customerName, count, stampId) {
+      const text = `${customerName} ne stamp liya (${count}/10) - ${shop.name}`;
+      const msg = {
+        id: 'wa-' + Date.now(),
+        shop_id: shop.id,
+        stamp_id: stampId,
+        text,
+        timestamp: new Date().toISOString(),
+        cancelled: false,
+        unread: true
+      };
+      state.whatsappMessages.unshift(msg);
+      if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('whatsappMessages', msg);
+    }
+
+    function sendWeeklySundayDigest() {
+      const shop = state.shops.find((s) => s.id === state.ownerShopId) || state.shops[0];
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const shopStamps = state.stamps.filter((s) => s.shop_id === shop.id && s.status === 'active');
+      const recentStamps = shopStamps.filter((s) => new Date(s.created_at).getTime() >= weekAgo);
+      const returningCount = new Set(recentStamps.map((s) => s.customer_id)).size;
+      const redeemedCount = state.rewards.filter((r) => r.shop_id === shop.id && r.status === 'redeemed').length;
+      const newCustomersCount = new Set(shopStamps.map((s) => s.customer_id)).size;
+
+      const digestText = `📊 Sunday 9:00 AM Digest (${shop.name}): Is hafte ${returningCount} customers wapas aaye, ${redeemedCount} ne reward liya. Aapke ${newCustomersCount} naye customers jude.`;
+
+      const digestMsg = {
+        id: 'wa-digest-' + Date.now(),
+        shop_id: shop.id,
+        stamp_id: null,
+        text: digestText,
+        timestamp: new Date().toISOString(),
+        cancelled: false,
+        unread: false
+      };
+      state.whatsappMessages.unshift(digestMsg);
+      if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('whatsappMessages', digestMsg);
+
+      logAudit('WEEKLY_DIGEST_SENT', shop.name, digestText);
+      saveState();
+      renderWhatsAppDrawer();
+      showToast('Sunday 9:00 AM Weekly Digest bhej diya gaya!');
+    }
+
+    function logAudit(type, shopName, detail) {
+      const entry = {
+        id: 'log-' + Date.now() + Math.random().toString(16).slice(2, 5),
+        type,
+        shop_name: shopName,
+        detail,
+        timestamp: new Date().toISOString()
+      };
+      state.auditLogs.unshift(entry);
+      if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('auditLogs', entry);
+    }
+
+    // =========================================================================
+    // 6. CORE STAMP, REWARD & CANCELLATION BUSINESS LOGIC
+    // =========================================================================
+    function getCustomerActiveStamps(shopId, customerId) {
+      return state.stamps.filter(
+        (s) => s.shop_id === shopId && s.customer_id === customerId && s.status === 'active'
+      );
+    }
+
+    function getCustomerUnlockedReward(shopId, customerId) {
+      return state.rewards.find(
+        (r) => r.shop_id === shopId && r.customer_id === customerId && r.status === 'unlocked'
+      );
+    }
+
+    function cancelStampById(stampId) {
+      showToast('Stamp reversal audit-safe server workflow ke baad enable hoga.','warning'); return;
+      const stamp = state.stamps.find((s) => s.id === stampId);
+      if (!stamp || stamp.status === 'cancelled') {
+        showToast('Yeh stamp pehle hi cancel ho chuka hai.', 'warning');
+        return;
+      }
+
+      stamp.status = 'cancelled';
+      stamp.cancelled_at = new Date().toISOString();
+      if (window.ApnaLoopLiveDB) {
+        window.ApnaLoopLiveDB.patchRecord('stamps', stamp.id, {
+          status: 'cancelled',
+          cancelled_at: stamp.cancelled_at
+        });
+      }
+
+      // If this stamp had unlocked a reward that hasn't been redeemed yet, revoke it
+      const activeStampsLeft = getCustomerActiveStamps(stamp.shop_id, stamp.customer_id).length;
+      if (activeStampsLeft < 10) {
+        const unlocked = getCustomerUnlockedReward(stamp.shop_id, stamp.customer_id);
+        if (unlocked) {
+          unlocked.status = 'cancelled';
+          if (window.ApnaLoopLiveDB) {
+            window.ApnaLoopLiveDB.patchRecord('rewards', unlocked.id, { status: 'cancelled' });
+          }
+        }
+      }
+
+      // Mark WhatsApp message cancelled & send confirmation message
+      const waMsg = state.whatsappMessages.find((m) => m.stamp_id === stampId);
+      if (waMsg) {
+        waMsg.cancelled = true;
+        if (window.ApnaLoopLiveDB) {
+          window.ApnaLoopLiveDB.patchRecord('whatsappMessages', waMsg.id, { cancelled: true });
+        }
+      }
+
+      const shop = state.shops.find((sh) => sh.id === stamp.shop_id);
+      const shopName = shop ? shop.name : 'Shop';
+
+      const cancelAlert = {
+        id: 'wa-cancel-' + Date.now(),
+        shop_id: stamp.shop_id,
+        stamp_id: null,
+        text: `❌ Stamp Cancelled: ${stamp.customer_name} ka stamp (${shopName}) owner dwara radd kiya gaya.`,
+        timestamp: new Date().toISOString(),
+        cancelled: false,
+        unread: true
+      };
+      state.whatsappMessages.unshift(cancelAlert);
+      if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('whatsappMessages', cancelAlert);
+
+      logAudit(
+        'STAMP_CANCELLED',
+        shopName,
+        `Owner cancelled stamp for ${stamp.customer_name} (+91 ${stamp.customer_phone})`
+      );
+
+      saveState();
+      showToast(`Stamp cancelled for ${stamp.customer_name}`, 'warning');
+      renderWhatsAppDrawer();
+      renderCurrentView();
+    }
+
+    async function handleClaimStamp() {
+      const shop = state.shops.find(s => s.id === state.selectedShopId);
+      if (!shop || !state.currentCustomer) return showToast('Pehle mobile OTP verify karein.', 'warning');
+      if (!state.pendingQrToken) return showToast('Stamp ke liye counter par owner ka LIVE QR scan karein.', 'warning');
+      if (!window.ApnaLoopLiveDB?.client) return showToast('Live database abhi connect nahi hai.', 'error');
+      const button = document.getElementById('claim-stamp-btn');
+      if (button) { button.disabled = true; button.textContent = 'Stamp verify ho raha hai…'; }
+      const { data, error } = await window.ApnaLoopLiveDB.client.rpc('claim_shop_stamp', {
+        p_shop_id: shop.id, p_qr_token: state.pendingQrToken, p_idempotency_key: crypto.randomUUID()
+      });
+      if (error) {
+        const msg = error.message || 'Stamp verify nahi ho paya.';
+        if (msg.includes('STAMP_ALREADY_CLAIMED_TODAY')) showToast('Aaj is shop se stamp mil chuka hai.', 'warning');
+        else if (msg.includes('REWARD_PENDING_REDEMPTION')) showToast('Pehle apna unlocked reward counter par redeem karwayein.', 'warning');
+        else if (msg.includes('QR_SESSION_EXPIRED_OR_INVALID')) showToast('QR expire ho gaya. Owner se naya LIVE QR scan karein.', 'warning');
+        else showToast(msg, 'error');
+        if (button) { button.disabled = false; button.textContent = 'Stamp Claim Karein'; }
+        return;
+      }
+      state.pendingQrToken = null;
+      const params = new URLSearchParams(window.location.search);
+      params.delete('qr'); params.delete('shop');
+      window.history.replaceState({}, '', window.location.pathname + (params.toString() ? '?' + params.toString() : ''));
+      await refreshCustomerCard(shop.id);
+      state.lastScanSuccess = {
+        shopId: shop.id, shopName: shop.name, count: data.stamp_count,
+        rewardText: data.reward_title || shop.reward_text, rewardUnlocked: data.reward_unlocked === true,
+        timestamp: new Date(data.created_at || Date.now()).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+      };
+      state.currentView = 'scan-success';
+      renderCurrentView();
+      showToast(data.reward_unlocked ? '10 stamps complete! Reward unlock ho gayi 🎉' : 'Stamp successfully add ho gaya!');
+    }
+
+    function renderCurrentView() {
+      updateNavHighlights();
+      const root = document.getElementById('app-root');
+
+      switch (state.currentView) {
+        case 'home':
+          root.innerHTML = renderHomeView();
+          mountQRCode('hero-standee-qr', 'https://apnaloop.in', 120);
+          break;
+        case 'customer':
+          root.innerHTML = renderCustomerCardView();
+          mountCustomerRewardQR();
+          break;
+        case 'scan-success':
+          root.innerHTML = renderScanSuccessView();
+          break;
+        case 'onboarding':
+          root.innerHTML = renderOnboardingView();
+          mountOnboardingStandeeQR();
+          break;
+        case 'dashboard':
+          root.innerHTML = renderOwnerDashboardView();
+          mountLiveShopQR();
+          break;
+        case 'redeem':
+          root.innerHTML = renderRedeemView();
+          break;
+        case 'admin':
+          root.innerHTML = renderSuperAdminView();
+          break;
+        default:
+          root.innerHTML = renderHomeView();
+      }
+
+      lucide.createIcons();
+    }
+
+    function mountQRCode(elementId, text, size = 140) {
+      const container = document.getElementById(elementId);
+      if (!container || typeof QRCode === 'undefined') return;
+      container.innerHTML = '';
+      new QRCode(container, {
+        text,
+        width: size,
+        height: size,
+        colorDark: '#1A1A1A',
+        colorLight: '#FFFFFF',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // SCREEN 1: LANDING PAGE (/)
+    // -------------------------------------------------------------------------
+    function renderHomeView() {
+      return `
+        <div class="space-y-8 view-enter">
+          <!-- Hero Section -->
+          <section class="bg-white rounded-3xl p-6 sm:p-10 shadow-sm border border-black/5 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div class="lg:col-span-7 space-y-5">
+              <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0F9D58]/10 text-[#0F9D58] text-xs font-extrabold">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span>${t('hero_badge')}</span>
+              </div>
+
+              <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#1A1A1A] leading-[1.15]">
+                ${t('hero_title')}
+              </h1>
+
+              <p class="text-sm sm:text-base text-neutral-600 leading-relaxed max-w-xl">
+                ${t('hero_sub')}
+              </p>
+
+              <div class="flex flex-col sm:flex-row gap-3 pt-1">
+                <button onclick="navigateTo('onboarding')" class="px-6 py-4 rounded-2xl bg-[#0F9D58] hover:bg-[#0c8248] text-white font-extrabold text-sm shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all">
+                  <i data-lucide="store" class="w-4 h-4"></i>
+                  <span>${t('cta_setup_shop')}</span>
+                </button>
+                <button onclick="navigateTo('customer')" class="px-6 py-4 rounded-2xl bg-[#FFF8F0] hover:bg-orange-100/70 text-[#1A1A1A] border border-black/10 font-extrabold text-sm flex items-center justify-center gap-2 transition-all">
+                  <i data-lucide="qr-code" class="w-4 h-4 text-[#FF6B00]"></i>
+                  <span>${t('cta_open_card')}</span>
+                </button>
+              </div>
+
+              <!-- Quick Trust Badges -->
+              <div class="grid grid-cols-3 gap-2 pt-2 max-w-md">
+                <div class="p-2.5 rounded-2xl bg-[#FFF8F0] text-center">
+                  <p class="text-sm font-extrabold text-[#1A1A1A]">0 Apps</p>
+                  <p class="text-[11px] text-neutral-500">Seedha Browser</p>
+                </div>
+                <div class="p-2.5 rounded-2xl bg-[#FFF8F0] text-center">
+                  <p class="text-sm font-extrabold text-[#0F9D58]">WhatsApp</p>
+                  <p class="text-[11px] text-neutral-500">Live Alerts</p>
+                </div>
+                <div class="p-2.5 rounded-2xl bg-[#FFF8F0] text-center">
+                  <p class="text-sm font-extrabold text-[#FF6B00]">200m</p>
+                  <p class="text-[11px] text-neutral-500">Anti-Fraud Lock</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live QR Standee Preview Card -->
+            <div class="lg:col-span-5 flex justify-center">
+              <div class="w-full max-w-[300px] bg-gradient-to-b from-[#0F9D58] to-[#0B7A44] rounded-3xl p-5 text-white shadow-xl relative overflow-hidden">
+                <div class="flex items-center justify-between text-xs font-bold opacity-90 mb-3">
+                  <span>ApnaLoop Standee</span>
+                  <span class="px-2 py-0.5 rounded-full bg-white/20 text-[10px]">SCAN & WIN</span>
+                </div>
+                <div class="bg-white rounded-2xl p-4 text-[#1A1A1A] text-center shadow-inner">
+                  <p class="text-xs font-bold text-[#FF6B00] uppercase tracking-wider">Sharma Ji Ki Chai</p>
+                  <h3 class="text-base font-extrabold mt-0.5">10 Chai = 1 Chai FREE!</h3>
+                  <div id="hero-standee-qr" class="my-3 flex justify-center"></div>
+                  <p class="text-[11px] text-neutral-500 font-semibold">Camera kholein aur scan karein</p>
+                </div>
+                <button onclick="navigateTo('customer')" class="mt-3.5 w-full py-2.5 rounded-xl bg-[#FF6B00] hover:bg-orange-600 text-white font-extrabold text-xs shadow-md transition-colors">
+                  Stamp Card Dekhein →
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- How It Works (Customer vs Owner) -->
+          <section class="space-y-4">
+            <h2 class="text-xl sm:text-2xl font-extrabold text-[#1A1A1A]">${t('how_title')}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Customer Flow -->
+              <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-xs space-y-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-2xl bg-[#FF6B00]/10 text-[#FF6B00] flex items-center justify-center">
+                    <i data-lucide="user-check" class="w-5 h-5"></i>
+                  </div>
+                  <h3 class="font-extrabold text-base text-[#1A1A1A]">${t('how_cust_title')}</h3>
+                </div>
+                <ol class="space-y-3 text-sm text-neutral-600">
+                  <li class="flex items-start gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-[#FFF8F0] text-[#FF6B00] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <span>Counter par rakha <strong>ApnaLoop QR</strong> phone camera se scan karein.</span>
+                  </li>
+                  <li class="flex items-start gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-[#FFF8F0] text-[#FF6B00] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <span>Pehli baar naam + mobile OTP dalein. Agli baar 1-tap mein stamp milega.</span>
+                  </li>
+                  <li class="flex items-start gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-[#FFF8F0] text-[#FF6B00] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <span><strong>10/10 stamps</strong> poore hote hi Gold Reward Code unlock!</span>
+                  </li>
+                </ol>
+              </div>
+
+              <!-- Owner Flow -->
+              <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-xs space-y-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-2xl bg-[#0F9D58]/10 text-[#0F9D58] flex items-center justify-center">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                  </div>
+                  <h3 class="font-extrabold text-base text-[#1A1A1A]">${t('how_owner_title')}</h3>
+                </div>
+                <ol class="space-y-3 text-sm text-neutral-600">
+                  <li class="flex items-start gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-emerald-50 text-[#0F9D58] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <span>Sirf 2 minute mein dukaan register karein aur QR standee print karein.</span>
+                  </li>
+                  <li class="flex items-start gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-emerald-50 text-[#0F9D58] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <span>Daily bheed mein phone chhoone ki zaroorat nahi — har stamp par WhatsApp alert aayega.</span>
+                  </li>
+                  <li class="flex items-start gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-emerald-50 text-[#0F9D58] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <span>Customer 6-digit code dikhaye, <strong>[ Reward Dedo ]</strong> dabakar free item dein.</span>
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </section>
+
+          <!-- Pricing Section -->
+          <section class="bg-[#1A1A1A] text-white rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div class="space-y-2">
+              <span class="inline-block px-3 py-1 rounded-full bg-[#FF6B00] text-white text-xs font-extrabold">
+                ${t('pricing_per_day')}
+              </span>
+              <h2 class="text-2xl sm:text-3xl font-extrabold">${t('pricing_free')}</h2>
+              <p class="text-neutral-300 text-sm sm:text-base">
+                ${t('pricing_paid')} • Unlimited customers, WhatsApp alerts & anti-fraud security.
+              </p>
+            </div>
+            <button onclick="navigateTo('onboarding')" class="w-full md:w-auto px-7 py-4 rounded-2xl bg-[#0F9D58] hover:bg-[#0c8248] text-white font-extrabold text-sm shrink-0 transition-colors">
+              30-Day Free Trial Shuru Karein →
+            </button>
+          </section>
+        </div>
+      `;
+    }
+
+    // -------------------------------------------------------------------------
+    // SCREEN 2 & 4: CUSTOMER STAMP CARD (/s/[shopId]) + REWARD UNLOCKED GOLD VIEW
+    // -------------------------------------------------------------------------
+    function renderCustomerCardView() {
+      const shop = state.shops.find((s) => s.id === state.selectedShopId && s.is_active) || state.shops.find((s) => s.is_active);
+      if (!shop) return `<div class="max-w-lg mx-auto bg-white rounded-3xl p-8 text-center shadow-sm"><div class="text-4xl mb-3">🏪</div><h2 class="text-xl font-extrabold">Abhi koi active shop nahi hai</h2><p class="text-sm text-neutral-500 mt-2">Jab shops ApnaLoop par register hongi, yahan unke loyalty cards dikhenge.</p><button onclick="navigateTo('home')" class="mt-5 px-5 py-3 rounded-xl bg-[#0F9D58] text-white font-bold">Home par jao</button></div>`;
+      const catMeta = CATEGORY_META[shop.category] || CATEGORY_META.Other;
+      const customer = state.currentCustomer;
+
+      // Shop Switcher Bar (so customer can switch between active shops seamlessly)
+      const shopSelectorHtml = `
+        <div class="bg-white rounded-2xl p-3 border border-black/5 flex items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2 text-xs font-bold text-neutral-600">
+            <i data-lucide="map-pin" class="w-4 h-4 text-[#0F9D58]"></i>
+            <span>Dukaan Chunein:</span>
+          </div>
+          <select onchange="navigateTo('customer', this.value)" class="text-xs sm:text-sm font-extrabold bg-[#FFF8F0] border border-black/10 rounded-xl px-3 py-2 text-[#1A1A1A] focus:outline-none">
+            ${state.shops.filter((s) => s.is_active)
+              .map((s) => `<option value="${s.id}" ${s.id === shop.id ? 'selected' : ''}>${s.name} (${s.category})</option>`)
+              .join('')}
+          </select>
+        </div>
+      `;
+
+      // First-Time Customer Onboarding (Name + 10-Digit Phone + OTP Verification)
+      if (!customer) {
+        const pending = state.pendingOtp;
+        return `
+          <div class="max-w-md mx-auto view-enter">
+            ${shopSelectorHtml}
+            <div class="bg-white rounded-3xl p-6 shadow-md border border-black/5 space-y-5">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-[#0F9D58]/10 flex items-center justify-center text-2xl">${catMeta.emoji}</div>
+                <div>
+                  <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#FF6B00]">${shop.category}</span>
+                  <h2 class="text-xl font-extrabold text-[#1A1A1A]">${shop.name}</h2>
+                </div>
+              </div>
+
+              <div class="p-3.5 rounded-2xl bg-[#FFF8F0] border border-orange-200/70">
+                <p class="text-xs font-bold text-neutral-600">10 Stamps Poore Hone Par Reward:</p>
+                <p class="text-sm font-extrabold text-[#1A1A1A] mt-0.5">🎁 ${shop.reward_text}</p>
+              </div>
+
+              <div class="border-t border-neutral-100 pt-4">
+                <h3 class="font-extrabold text-base text-[#1A1A1A]">${t('verify_otp_title')}</h3>
+                <p class="text-xs text-neutral-500 mt-0.5">Ek baar verify karein, agli baar seedha stamp milega.</p>
+
+                ${
+                  !pending
+                    ? `
+                  <form onsubmit="handleSendCustomerOtp(event)" class="mt-4 space-y-3.5">
+                    <div>
+                      <label class="block text-xs font-bold text-neutral-700 mb-1">Aapka Naam</label>
+                      <input id="cust-name-input" type="text" required placeholder="Jaise: Rahul Sharma" class="w-full px-4 py-3.5 rounded-2xl border border-neutral-200 text-sm font-semibold focus:border-[#0F9D58] focus:outline-none" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold text-neutral-700 mb-1">10-Digit Mobile Number</label>
+                      <div class="flex items-center rounded-2xl border border-neutral-200 overflow-hidden focus-within:border-[#0F9D58]">
+                        <span class="px-3.5 py-3.5 bg-neutral-50 text-neutral-600 font-extrabold text-sm border-r border-neutral-200 tabular-nums">+91</span>
+                        <input id="cust-phone-input" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required placeholder="9876543210" class="w-full px-3.5 py-3.5 text-sm font-bold tabular-nums focus:outline-none" />
+                      </div>
+                    </div>
+                    <button type="submit" class="w-full py-4 rounded-2xl bg-[#0F9D58] hover:bg-[#0c8248] text-white font-extrabold text-sm shadow-md transition-colors">
+                      OTP Bhejein →
+                    </button>
+                  </form>
+                `
+                    : `
+                  <form onsubmit="handleVerifyCustomerOtp(event)" class="mt-4 space-y-3.5">
+                    <div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">
+                      <p class="font-bold">OTP bheja gaya: +91 ${pending.phone}</p>
+                      <p class="mt-1">SMS mein aaya OTP enter karein. OTP app mein display nahi hoga.</p>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold text-neutral-700 mb-1">4-Digit OTP Daalein</label>
+                      <input id="cust-otp-input" type="tel" inputmode="numeric" maxlength="4" required placeholder="••••" class="w-full px-4 py-3.5 rounded-2xl border border-neutral-200 text-center text-xl font-extrabold tracking-[0.5em] tabular-nums focus:border-[#0F9D58] focus:outline-none" />
+                    </div>
+                    <div class="flex gap-2">
+                      <button type="button" onclick="cancelPendingOtp()" class="px-4 py-3.5 rounded-2xl bg-neutral-100 text-neutral-700 font-bold text-xs">Number Badlein</button>
+                      <button type="submit" class="flex-1 py-3.5 rounded-2xl bg-[#0F9D58] text-white font-extrabold text-sm">Verify & Card Kholein</button>
+                    </div>
+                  </form>
+                `
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Check if customer has unlocked a 10/10 reward at this shop -> SCREEN 4: REWARD UNLOCKED GOLD THEME
+      const unlockedReward = getCustomerUnlockedReward(shop.id, customer.id);
+      if (unlockedReward) {
+        return `
+          <div class="max-w-md mx-auto view-enter">
+            ${shopSelectorHtml}
+            <div class="gold-card rounded-3xl p-6 shadow-xl text-center space-y-5 relative overflow-hidden">
+              <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500 text-white text-xs font-extrabold tracking-wide shadow-xs">
+                <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
+                <span>REWARD UNLOCKED! (10/10)</span>
+              </div>
+
+              <div>
+                <p class="text-xs font-bold text-amber-900 uppercase tracking-wider">${shop.name}</p>
+                <h2 class="text-2xl font-extrabold text-[#1A1A1A] mt-1">${unlockedReward.reward_text}</h2>
+                <p class="text-xs text-amber-900/80 mt-1">Counter par dukaandar ko yeh code ya QR dikhayein</p>
+              </div>
+
+              <!-- 6-Digit Redeem Code Box -->
+              <div class="bg-white rounded-2xl p-4 border-2 border-amber-400 shadow-inner">
+                <p class="text-[11px] font-bold text-neutral-500 uppercase">6-Digit Redeem Code</p>
+                <p class="text-4xl font-extrabold tracking-[0.2em] text-[#1A1A1A] tabular-nums mt-1">${unlockedReward.code}</p>
+              </div>
+
+              <!-- Scannable Reward QR -->
+              <div class="bg-white rounded-2xl p-4 inline-flex flex-col items-center border border-amber-300 shadow-xs">
+                <div id="customer-reward-qr"></div>
+                <span class="text-[10px] font-bold text-neutral-500 mt-2">Owner Scan / Code Verification</span>
+              </div>
+
+              <div class="pt-1"><p class="text-xs text-amber-900 font-semibold">Counter par dukaandar apne dashboard mein yeh code enter karke reward redeem karega.</p></div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Standard Customer 10-Stamp Card
+      const activeStamps = getCustomerActiveStamps(shop.id, customer.id);
+      const count = Math.min(10, activeStamps.length);
+      const remaining = Math.max(0, 10 - count);
+      const pct = (count / 10) * 100;
+      const indiaToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+      const stampedToday = activeStamps.some((s) => s.stamp_date === indiaToday);
+
+      const slotsHtml = Array.from({ length: 10 }, (_, idx) => {
+        const slotNum = idx + 1;
+        const filled = slotNum <= count;
+        const isTenth = slotNum === 10;
+
+        if (filled) {
+          return `
+            <div class="aspect-square rounded-2xl bg-[#0F9D58] text-white flex flex-col items-center justify-center shadow-sm border-2 border-[#0F9D58]">
+              <i data-lucide="check" class="w-5 h-5 stroke-[3]"></i>
+              <span class="text-[10px] font-extrabold tabular-nums mt-0.5">#${slotNum}</span>
+            </div>
+          `;
+        }
+        return `
+          <div class="aspect-square rounded-2xl ${isTenth ? 'bg-amber-50 border-2 border-dashed border-amber-400 text-amber-700' : 'bg-neutral-100 border border-neutral-200 text-neutral-400'} flex flex-col items-center justify-center">
+            ${isTenth ? `<i data-lucide="gift" class="w-4 h-4"></i>` : `<span class="text-xs font-extrabold tabular-nums">${slotNum}</span>`}
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="max-w-md mx-auto view-enter">
+          ${shopSelectorHtml}
+
+          <div class="bg-white rounded-3xl shadow-md border border-black/5 overflow-hidden">
+            <!-- Shop Banner Header -->
+            <div class="bg-gradient-to-r from-[#0F9D58] to-[#0B7A44] p-5 text-white flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-xs flex items-center justify-center text-2xl">
+                  ${catMeta.emoji}
+                </div>
+                <div>
+                  <span class="inline-block px-2 py-0.5 rounded-md bg-white/20 text-[10px] font-bold uppercase tracking-wider">${shop.category}</span>
+                  <h2 class="text-lg font-extrabold leading-tight mt-0.5">${shop.name}</h2>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-2xl font-extrabold tabular-nums">${count}<span class="text-sm opacity-75">/10</span></span>
+                <p class="text-[10px] uppercase tracking-wider opacity-80">Stamps</p>
+              </div>
+            </div>
+
+            <!-- Customer Identity Bar -->
+            <div class="px-5 py-2.5 bg-[#FFF8F0] border-b border-black/5 flex items-center justify-between text-xs">
+              <span class="font-bold text-neutral-700">👋 ${customer.name} (<span class="tabular-nums">+91 ${customer.phone}</span>)</span>
+              <button onclick="logoutCustomer()" class="text-neutral-500 hover:text-red-600 font-bold underline">Switch</button>
+            </div>
+
+            <!-- 10 Circular/Rounded Stamp Slots -->
+            <div class="p-5 space-y-5">
+              <div class="grid grid-cols-5 gap-2.5">
+                ${slotsHtml}
+              </div>
+
+              <!-- Progress Bar -->
+              <div class="space-y-1.5">
+                <div class="w-full h-2.5 bg-neutral-100 rounded-full overflow-hidden">
+                  <div class="h-full bg-[#0F9D58] rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                </div>
+                <p class="text-xs sm:text-sm font-extrabold text-[#1A1A1A] text-center">
+                  ${
+                    remaining === 1
+                      ? `🔥 Sirf 1 stamp aur! Agli baar <span class="text-[#0F9D58]">${shop.reward_text}</span>!`
+                      : `🎯 ${remaining} stamps aur, <span class="text-[#0F9D58]">${shop.reward_text}</span> milegi!`
+                  }
+                </p>
+              </div>
+
+              <!-- Claim Today's Stamp Action -->
+              <div class="pt-1">
+                <button
+                  id="claim-stamp-btn"
+                  onclick="handleClaimStamp()"
+                  class="w-full py-4 rounded-2xl ${
+                    stampedToday
+                      ? 'bg-neutral-200 text-neutral-600 cursor-not-allowed'
+                      : 'bg-[#FF6B00] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/25'
+                  } font-extrabold text-sm flex items-center justify-center gap-2 transition-all"
+                >
+                  <i data-lucide="${stampedToday ? 'check-circle' : 'stamp'}" class="w-5 h-5"></i>
+                  <span>${stampedToday ? 'Aaj Ka Stamp Mil Chuka Hai ✓' : t('claim_stamp_btn')}</span>
+                </button>
+                <p class="text-[11px] text-neutral-400 text-center mt-2">
+                  🔒 Short-lived QR token • Server-verified one stamp per India day
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function mountCustomerRewardQR() {
+      const shop = state.shops.find((s) => s.id === state.selectedShopId && s.is_active) || state.shops.find((s) => s.is_active);
+      if (!shop || !state.currentCustomer) return;
+      const unlocked = getCustomerUnlockedReward(shop.id, state.currentCustomer.id);
+      if (unlocked) {
+        const redeemUrl = new URL(window.location.origin + '/');
+        redeemUrl.searchParams.set('redeem', unlocked.code);
+        redeemUrl.searchParams.set('shop', shop.id);
+        mountQRCode('customer-reward-qr', redeemUrl.toString(), 130);
+      }
+    }
+
+    async function handleSendCustomerOtp(e) {
+      e.preventDefault();
+      const name = document.getElementById('cust-name-input').value.trim();
+      const phone = document.getElementById('cust-phone-input').value.trim();
+      if (!name || !/^\\d{10}$/.test(phone)) return showToast('Sahi naam aur 10-digit mobile number daalein.', 'error');
+      if (!window.ApnaLoopLiveDB?.client) return showToast('Supabase connection ready nahi hai.', 'error');
+      const fullPhone = `+91${phone}`;
+      const { error } = await window.ApnaLoopLiveDB.client.auth.signInWithOtp({ phone: fullPhone, options: { data: { full_name: name } } });
+      if (error) return showToast(`OTP send nahi hua: ${error.message}`, 'error');
+      state.pendingOtp = { name, phone, fullPhone };
+      renderCurrentView();
+      showToast(`Verification code +91 ${phone} par bheja gaya.`);
+    }
+
+    async function handleVerifyCustomerOtp(e) {
+      e.preventDefault();
+      const entered = document.getElementById('cust-otp-input').value.trim();
+      if (!state.pendingOtp || !/^\\d{4,8}$/.test(entered)) return showToast('Valid OTP enter karein.', 'error');
+      const pending = state.pendingOtp;
+      const { data, error } = await window.ApnaLoopLiveDB.client.auth.verifyOtp({ phone: pending.fullPhone, token: entered, type: 'sms' });
+      if (error || !data.user) return showToast(`OTP verify nahi hua: ${error?.message || 'Please retry.'}`, 'error');
+      const user = data.user;
+      const writes = await Promise.all([
+        window.ApnaLoopLiveDB.client.from('profiles').upsert({ id: user.id, full_name: pending.name, phone_e164: pending.fullPhone, preferred_language: state.lang || 'hinglish' }, { onConflict: 'id' }),
+        window.ApnaLoopLiveDB.client.from('customers').upsert({ id: user.id, display_name: pending.name, phone_e164: pending.fullPhone }, { onConflict: 'id' }),
+        window.ApnaLoopLiveDB.client.from('customer_profiles').upsert({ user_id: user.id, display_name: pending.name, phone_e164: pending.fullPhone, preferred_language: state.lang === 'english' ? 'en' : 'hi' }, { onConflict: 'user_id' })
+      ]);
+      const failed = writes.find(x => x.error);
+      if (failed) return showToast(`Profile save nahi hua: ${failed.error.message}`, 'error');
+      state.currentCustomer = { id: user.id, name: pending.name, phone: pending.phone, verified_at: new Date().toISOString() };
+      state.pendingOtp = null; saveState();
+      if (state.pendingQrToken) await handleClaimStamp();
+      else { if(state.selectedShopId) await refreshCustomerCard(state.selectedShopId); renderCurrentView(); }
+      showToast(`Swagat hai ${state.currentCustomer.name}! Mobile verify ho gaya.`);
+    }
+
+    function cancelPendingOtp() {
+      state.pendingOtp = null;
+      saveState();
+      renderCurrentView();
+    }
+
+    async function logoutCustomer() {
+      await window.ApnaLoopLiveDB?.signOut();
+      saveState();
+      renderCurrentView();
+    }
+
+    // -------------------------------------------------------------------------
+    // SCREEN 3: SCAN SUCCESS SCREEN
+    // -------------------------------------------------------------------------
+    function renderScanSuccessView() {
+      const info = state.lastScanSuccess;
+      if (!info) {
+        return renderCustomerCardView();
+      }
+      const remaining = Math.max(0, 10 - info.count);
+      const rewardUnlocked = info.rewardUnlocked === true;
+
+      return `
+        <div class="max-w-md mx-auto view-enter">
+          <div class="bg-white rounded-3xl p-7 shadow-lg border border-black/5 text-center space-y-5">
+            <!-- Animated Stamp Icon -->
+            <div class="w-24 h-24 mx-auto rounded-full bg-[#0F9D58]/10 flex items-center justify-center">
+              <div class="w-16 h-16 rounded-full bg-[#0F9D58] text-white flex items-center justify-center shadow-lg animate-stamp-pop">
+                <i data-lucide="check" class="w-9 h-9 stroke-[3]"></i>
+              </div>
+            </div>
+
+            <div>
+              <span class="inline-block px-3 py-1 rounded-full bg-emerald-50 text-[#0F9D58] text-xs font-extrabold">
+                STAMP RECORDED • ${info.timestamp}
+              </span>
+              <h2 class="text-2xl font-extrabold text-[#1A1A1A] mt-2">Badhai Ho! Stamp Mil Gaya</h2>
+              <p class="text-sm text-neutral-500 mt-0.5">${info.shopName}</p>
+            </div>
+
+            <!-- Updated Counter -->
+            <div class="p-4 rounded-2xl bg-[#FFF8F0] border border-orange-200/70">
+              <p class="text-3xl font-extrabold text-[#1A1A1A] tabular-nums">${info.count} <span class="text-base font-bold text-neutral-400">/ 10 Stamps</span></p>
+              <p class="text-xs font-bold text-[#FF6B00] mt-1">
+                ${rewardUnlocked ? '🎉 10 stamps complete! Aapka reward unlock ho gaya.' : remaining + ' stamps aur, phir ' + info.rewardText + '!'}
+              </p>
+            </div>
+
+            <p class="text-xs text-neutral-500">
+              ✅ Dukaandar ko WhatsApp par notification bhej diya gaya hai.
+            </p>
+
+            <button onclick="navigateTo('customer', '${info.shopId}')" class="w-full py-4 rounded-2xl bg-[#0F9D58] hover:bg-[#0c8248] text-white font-extrabold text-sm shadow-md transition-colors">
+              Apna Stamp Card Dekhein →
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // -------------------------------------------------------------------------
+    // SCREEN 5: OWNER ONBOARDING — 2-MINUTE SETUP (/onboarding)
+    // -------------------------------------------------------------------------
+    let newlyCreatedShopId = null;
+
+    function renderOnboardingView() {
+      const createdShop = newlyCreatedShopId
+        ? state.shops.find((s) => s.id === newlyCreatedShopId)
+        : state.shops.find((s) => s.owner_user_id === state.currentCustomer?.id);
+
+      return `
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start view-enter">
+          <!-- Left: Strictly 3 Input Fields Form -->
+          <div class="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-black/5">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF6B00]/10 text-[#FF6B00] text-xs font-extrabold mb-3">
+              <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+              <span>Pehle 30 Din Bilkul FREE</span>
+            </div>
+            <h2 class="text-2xl font-extrabold text-[#1A1A1A]">${t('setup_title')}</h2>
+            <p class="text-sm text-neutral-500 mt-1">${t('setup_sub')}</p>
+
+            <form onsubmit="handleCreateShop(event)" class="mt-6 space-y-4">
+              <!-- Input 1: Shop Name -->
+              <div>
+                <label class="block text-xs font-extrabold text-neutral-700 mb-1.5">1. Shop Name (Dukaan Ka Naam)</label>
+                <input id="shop-name-input" type="text" required placeholder="Jaise: Gupta Juice Corner" class="w-full px-4 py-3.5 rounded-2xl border border-neutral-200 text-sm font-semibold focus:border-[#0F9D58] focus:outline-none" />
+              </div>
+
+              <!-- Input 2: Owner Phone -->
+              <div>
+                <label class="block text-xs font-extrabold text-neutral-700 mb-1.5">2. Owner Phone (WhatsApp Alerts Ke Liye)</label>
+                <div class="flex items-center rounded-2xl border border-neutral-200 overflow-hidden focus-within:border-[#0F9D58]">
+                  <span class="px-3.5 py-3.5 bg-neutral-50 text-neutral-600 font-extrabold text-sm border-r border-neutral-200 tabular-nums">+91</span>
+                  <input id="shop-phone-input" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required placeholder="9876543210" class="w-full px-3.5 py-3.5 text-sm font-bold tabular-nums focus:outline-none" />
+                <input id="shop-city-input" type="text" required maxlength="80" placeholder="Aapka city (e.g. Mangaluru)" class="mt-3 w-full px-4 py-3.5 rounded-2xl border border-neutral-200 text-sm font-semibold focus:border-[#0F9D58] focus:outline-none" />
+                </div>
+              </div>
+
+              <!-- Input 3: Kya bechte ho? -->
+              <div>
+                <label class="block text-xs font-extrabold text-neutral-700 mb-1.5">3. Kya bechte ho?</label>
+                <div class="grid grid-cols-3 gap-2">
+                  ${Object.keys(CATEGORY_META)
+                    .map(
+                      (cat, idx) => `
+                    <label class="cursor-pointer">
+                      <input type="radio" name="shop_category" value="${cat}" ${idx === 0 ? 'checked' : ''} class="peer sr-only" />
+                      <div class="p-3 rounded-2xl border border-neutral-200 peer-checked:border-[#0F9D58] peer-checked:bg-[#0F9D58]/10 text-center transition-all">
+                        <div class="text-xl">${CATEGORY_META[cat].emoji}</div>
+                        <div class="text-xs font-extrabold text-[#1A1A1A] mt-1">${cat}</div>
+                      </div>
+                    </label>
+                  `
+                    )
+                    .join('')}
+                </div>
+              </div>
+
+              <button type="submit" class="w-full py-4 rounded-2xl bg-[#0F9D58] hover:bg-[#0c8248] text-white font-extrabold text-sm shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="qr-code" class="w-4 h-4"></i>
+                <span>QR Standee Banayein →</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Right: Live Printable QR Standee Preview -->
+          <div class="lg:col-span-5 flex flex-col items-center">
+            <div id="printable-standee-area" class="w-full max-w-[330px] bg-white rounded-3xl p-6 shadow-md border-2 border-[#1A1A1A] text-center space-y-4">
+              <div class="flex items-center justify-between border-b border-neutral-100 pb-3">
+                <span class="font-extrabold text-sm text-[#0F294A]">Apna<span class="text-[#D4AF37]">Loop</span></span>
+                <span class="px-2.5 py-0.5 rounded-full bg-[#FFF8F0] text-[#FF6B00] text-[10px] font-extrabold uppercase">${createdShop.category}</span>
+              </div>
+
+              <div>
+                <h3 class="text-xl font-extrabold text-[#1A1A1A]">${createdShop.name}</h3>
+                <p class="text-xs font-bold text-[#0F9D58] mt-1">10 Stamps = ${createdShop.reward_text}</p>
+              </div>
+
+              <div class="p-3 rounded-2xl bg-[#FFF8F0] inline-flex flex-col items-center border border-orange-200/70">
+                <div id="onboarding-standee-qr"></div>
+                <span class="text-[11px] font-mono text-neutral-600 mt-2">apnaloop.in/s/${createdShop.id}</span>
+              </div>
+
+              <p class="text-xs text-neutral-600 font-semibold">
+                📱 Is QR se shop ka loyalty page kholein. Stamp lene ke liye owner dashboard ka LIVE QR scan karein.
+              </p>
+            </div>
+
+            <div class="w-full max-w-[330px] mt-4 grid grid-cols-2 gap-2.5 no-print">
+              <button onclick="window.print()" class="py-3.5 px-4 rounded-2xl bg-[#1A1A1A] hover:bg-neutral-800 text-white font-extrabold text-xs flex items-center justify-center gap-1.5">
+                <i data-lucide="printer" class="w-4 h-4"></i>
+                <span>Print / PDF Standee</span>
+              </button>
+              <button onclick="navigateTo('customer', '${createdShop.id}')" class="py-3.5 px-4 rounded-2xl bg-[#FF6B00] hover:bg-orange-600 text-white font-extrabold text-xs flex items-center justify-center gap-1.5">
+                <i data-lucide="external-link" class="w-4 h-4"></i>
+                <span>Card Khol Kar Dekhein</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function mountOnboardingStandeeQR() {
+      const shop = newlyCreatedShopId ? state.shops.find(s=>s.id===newlyCreatedShopId) : state.shops.find(s=>s.id===state.ownerShopId);
+      if(shop){const url=new URL(window.location.origin+'/');url.searchParams.set('shop',shop.id);mountQRCode('onboarding-standee-qr',url.toString(),155);}
+    }
+
+    async function handleCreateShop(e) {
+      e.preventDefault();
+      const name = document.getElementById('shop-name-input').value.trim();
+      const phone = document.getElementById('shop-phone-input').value.trim();
+      const city = document.getElementById('shop-city-input')?.value.trim();
+      const category = document.querySelector('input[name="shop_category"]:checked')?.value || 'Other';
+      const { data: authData } = await window.ApnaLoopLiveDB.client.auth.getUser();
+      const user = authData?.user;
+      if (!user) { showToast('Shop register karne se pehle mobile OTP verify karein.', 'warning'); navigateTo('customer-login'); return; }
+      if (!name || !city || !/^\\d{10}$/.test(phone)) return showToast('Shop name, city aur valid 10-digit phone number bharein.', 'error');
+      const slugBase = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'shop';
+      const slug = `${slugBase}-${crypto.randomUUID().slice(0, 8)}`;
+      const catMeta = CATEGORY_META[category] || CATEGORY_META.Other;
+      const { data: shopRow, error } = await window.ApnaLoopLiveDB.client.from('shops').insert({
+        owner_user_id: user.id, name, slug, business_type: category.toLowerCase(), city,
+        description: catMeta.defaultReward, phone_e164: `+91${phone}`, is_active: true
+      }).select('*').single();
+      if (error) return showToast(`Shop save nahi hui: ${error.message}`, 'error');
+      const rewardResult = await window.ApnaLoopLiveDB.client.from('rewards').insert({
+        shop_id: shopRow.id, title: catMeta.defaultReward, description: 'ApnaLoop loyalty reward', stamps_required: 10, is_active: true
+      });
+      if (rewardResult.error) showToast(`Shop ban gayi, lekin reward setup fail hua: ${rewardResult.error.message}`, 'warning');
+      const newShop = { id: shopRow.id, name, phone, category, reward_text: catMeta.defaultReward, city, slug,
+        lat: null, lng: null, subscription_status: 'Trial', created_at: shopRow.created_at, owner_user_id: user.id };
+      state.shops.unshift(newShop); state.selectedShopId = shopRow.id; state.ownerShopId = shopRow.id;
+      newlyCreatedShopId = shopRow.id; saveState(); renderCurrentView();
+      showToast(`${name} ka account live database mein create ho gaya!`);
+    }
+
+    function renderOwnerDashboardView() {
+      const shop = state.shops.find((s) => s.id === state.ownerShopId) || state.shops[0];
+      if (!shop) return `<div class="max-w-xl mx-auto bg-white rounded-3xl p-8 text-center shadow-sm"><div class="text-4xl mb-3">🚀</div><h2 class="text-xl font-extrabold">Aapki shop abhi register nahi hui</h2><p class="text-sm text-neutral-500 mt-2">Apni dukaan ka account banayein, phir dashboard yahan live data dikhayega.</p><button onclick="navigateTo('onboarding')" class="mt-5 px-5 py-3 rounded-xl bg-[#0F9D58] text-white font-bold">Shop register karein</button></div>`;
+      const shopStamps = state.stamps.filter((s) => s.shop_id === shop.id);
+      const activeStamps = shopStamps.filter((s) => s.status === 'active');
+
+      // KPI 1: Aaj ke stamps
+      const liveStats = state.dashboardStats?.shopId === shop.id ? state.dashboardStats : null;
+      const todayIso = new Date().toISOString();
+      const todayStampsCount = liveStats?.today_stamps ?? activeStamps.filter((s) => isSameDay(s.created_at, todayIso)).length;
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const weekStamps = activeStamps.filter((s) => new Date(s.created_at).getTime() >= weekAgo);
+      const repeatCustomersThisWeek = liveStats?.repeat_customers ?? new Set(weekStamps.map((s) => s.customer_id)).size;
+      const totalCustomersCount = liveStats?.total_customers ?? new Set(shopStamps.map((s) => s.customer_id)).size;
+
+      const recentActivity = shopStamps.slice(0, 12);
+
+      return `
+        <div class="space-y-6 view-enter">
+          <!-- Shop Header & Selector -->
+          <div class="bg-white rounded-3xl p-5 border border-black/5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#0F9D58] text-xs font-extrabold">${shop.subscription_status}</span>
+                <span class="text-xs text-neutral-400 tabular-nums">${shop.city || ''}</span>
+              </div>
+              <h2 class="text-xl font-extrabold text-[#1A1A1A] mt-1">${shop.name} — Owner Dashboard</h2>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <select onchange="switchOwnerShop(this.value)" class="px-3.5 py-2.5 rounded-2xl bg-[#FFF8F0] border border-black/10 text-xs font-extrabold text-[#1A1A1A]">
+                ${state.shops
+                  .map((s) => `<option value="${s.id}" ${s.id === shop.id ? 'selected' : ''}>${s.name}</option>`)
+                  .join('')}
+              </select>
+              <button onclick="navigateTo('redeem')" class="px-4 py-2.5 rounded-2xl bg-[#FF6B00] text-white text-xs font-extrabold shrink-0">
+                Redeem Code
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-3xl p-5 border border-black/5 shadow-xs flex flex-col sm:flex-row items-center gap-4">
+            <div class="text-center sm:text-left flex-1"><h3 class="font-extrabold text-base text-[#1A1A1A]">Counter ka LIVE QR</h3><p class="text-xs text-neutral-500 mt-1">Customer apne phone camera se scan kare. QR short-lived hai aur stamp server par verify hota hai.</p><p id="owner-live-shop-qr-status" class="text-xs font-bold text-[#0F9D58] mt-2">Secure QR generate ho raha hai…</p><button onclick="refreshLiveShopQR()" class="mt-3 px-4 py-2 rounded-xl bg-[#0F9D58] text-white text-xs font-extrabold">Refresh Live QR</button></div>
+            <div id="owner-live-shop-qr" class="bg-white rounded-2xl border border-neutral-100 p-2 min-w-[206px] min-h-[206px] flex items-center justify-center"></div>
+          </div>
+
+          <!-- 3 Large KPI Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-neutral-500 uppercase tracking-wider">${t('dash_today')}</span>
+                <div class="w-9 h-9 rounded-xl bg-[#0F9D58]/10 text-[#0F9D58] flex items-center justify-center">
+                  <i data-lucide="stamp" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p class="text-4xl font-extrabold text-[#1A1A1A] tabular-nums mt-3">${todayStampsCount}</p>
+              <p class="text-xs text-[#0F9D58] font-bold mt-1">Live counter scans</p>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-neutral-500 uppercase tracking-wider">${t('dash_repeat')}</span>
+                <div class="w-9 h-9 rounded-xl bg-[#FF6B00]/10 text-[#FF6B00] flex items-center justify-center">
+                  <i data-lucide="repeat" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p class="text-4xl font-extrabold text-[#1A1A1A] tabular-nums mt-3">${repeatCustomersThisWeek}</p>
+              <p class="text-xs text-[#FF6B00] font-bold mt-1">Last 7 days active</p>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-neutral-500 uppercase tracking-wider">${t('dash_total')}</span>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <i data-lucide="users" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p class="text-4xl font-extrabold text-[#1A1A1A] tabular-nums mt-3">${totalCustomersCount}</p>
+              <p class="text-xs text-neutral-500 font-bold mt-1">Verified mobile numbers</p>
+            </div>
+          </div>
+
+          <!-- Recent Activity List with 1-Tap [ Cancel Stamp ] -->
+          <div class="bg-white rounded-3xl p-5 sm:p-6 border border-black/5 shadow-xs">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-extrabold text-base text-[#1A1A1A]">Recent Stamp Activity</h3>
+              <span class="text-xs text-neutral-400">1-Tap Rollback Enabled</span>
+            </div>
+
+            ${
+              !recentActivity.length
+                ? `<p class="text-sm text-neutral-500 py-6 text-center">Is dukaan par abhi koi stamp nahi laga hai.</p>`
+                : `
+              <div class="divide-y divide-neutral-100">
+                ${recentActivity
+                  .map((st) => {
+                    const custCount = Number.isFinite(st.stamp_count) ? st.stamp_count : getCustomerActiveStamps(shop.id, st.customer_id).length;
+                    const isCancelled = st.status === 'cancelled';
+                    const isRedeemedCycle = st.status === 'redeemed_cycle';
+
+                    return `
+                      <div class="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-2xl ${isCancelled ? 'bg-red-50 text-red-600' : 'bg-[#FFF8F0] text-[#1A1A1A]'} font-extrabold text-sm flex items-center justify-center shrink-0">
+                            ${st.customer_name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div class="flex items-center gap-2">
+                              <p class="font-extrabold text-sm text-[#1A1A1A]">${st.customer_name}</p>
+                              <span class="px-2 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums ${
+                                isCancelled
+                                  ? 'bg-red-100 text-red-700'
+                                  : isRedeemedCycle
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-emerald-50 text-[#0F9D58]'
+                              }">
+                                ${isCancelled ? 'Cancelled' : isRedeemedCycle ? 'Redeemed' : `${custCount}/10`}
+                              </span>
+                            </div>
+                            <p class="text-xs text-neutral-500 tabular-nums">+91 ${st.customer_phone} • ${formatTimeAgo(st.created_at)}</p>
+                          </div>
+                        </div>
+
+                        <div class="flex items-center justify-end">
+                          ${
+                            st.status === 'active'
+                              ? `<button onclick="cancelStampById('${st.id}')" class="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-extrabold transition-colors">[ Cancel Stamp ]</button>`
+                              : `<span class="text-xs font-bold text-neutral-400">${isCancelled ? 'Radd Kiya Gaya' : 'Completed'}</span>`
+                          }
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join('')}
+              </div>
+            `
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    function switchOwnerShop(shopId) {
+      state.ownerShopId = shopId; state.dashboardStats=null; saveState(); renderCurrentView();
+      refreshShopDashboard(shopId).then(renderCurrentView).catch(e=>showToast(e.message,'error')); mountLiveShopQR();
+    }
+
+    // -------------------------------------------------------------------------
+    // SCREEN 7: REDEEM SCREEN (/redeem) — 6-DIGIT NUMERIC KEYPAD
+    // -------------------------------------------------------------------------
+    let redeemCodeBuffer = '';
+
+    function openRedeemWithPrefill(code) {
+      redeemCodeBuffer = code;
+      navigateTo('redeem');
+    }
+
+    function renderRedeemView() {
+      const digits = Array.from({ length: 6 }, (_, i) => redeemCodeBuffer[i] || '');
+
+      return `
+        <div class="max-w-md mx-auto view-enter">
+          <div class="bg-white rounded-3xl p-6 shadow-md border border-black/5 space-y-5">
+            <div class="text-center">
+              <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-2">
+                <i data-lucide="gift" class="w-6 h-6"></i>
+              </div>
+              <h2 class="text-xl font-extrabold text-[#1A1A1A]">${t('redeem_title')}</h2>
+              <p class="text-xs text-neutral-500 mt-0.5">Customer ke phone par dikh raha 6-digit code daalein</p>
+            </div>
+
+            <!-- 6-Digit Display Boxes -->
+            <div class="grid grid-cols-6 gap-2">
+              ${digits
+                .map(
+                  (d) => `
+                <div class="h-14 rounded-2xl border-2 ${d ? 'border-[#0F9D58] bg-emerald-50/40' : 'border-neutral-200 bg-[#FFF8F0]'} flex items-center justify-center text-2xl font-extrabold text-[#1A1A1A] tabular-nums">
+                  ${d}
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+
+            <!-- Server-side reward validation result -->
+            ${redeemResult ? (redeemResult.ok ? `<div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-center space-y-2"><span class="px-2.5 py-1 rounded-full bg-[#0F9D58] text-white text-[10px] font-extrabold">REDEEMED</span><p class="font-extrabold text-[#0F9D58]">${redeemResult.reward_title || 'Reward'} successfully redeemed!</p><p class="text-xs text-neutral-600">Customer ki loyalty card reset ho gayi hai.</p></div>` : `<div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-center text-xs font-bold text-red-700">${redeemResult.message || 'Code verify nahi hua.'}</div>`) : (redeemCodeBuffer.length === 6 ? `<button onclick="confirmGiveReward()" class="w-full py-3.5 rounded-2xl bg-[#0F9D58] text-white font-extrabold text-sm">Verify & Redeem Reward</button>` : `<p class="text-xs text-neutral-500 text-center">Customer ka 6-digit reward code enter karein.</p>`)}
+
+            <!-- Large Tactile Numeric Keypad -->
+            <div class="grid grid-cols-3 gap-2.5 pt-1">
+              ${['1', '2', '3', '4', '5', '6', '7', '8', '9']
+                .map(
+                  (num) => `
+                <button onclick="pressRedeemDigit('${num}')" class="h-14 rounded-2xl bg-[#FFF8F0] hover:bg-orange-100/80 active:scale-95 border border-black/5 text-xl font-extrabold text-[#1A1A1A] tabular-nums transition-all">
+                  ${num}
+                </button>
+              `
+                )
+                .join('')}
+              <button onclick="clearRedeemDigits()" class="h-14 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-xs font-extrabold text-neutral-600">
+                CLEAR
+              </button>
+              <button onclick="pressRedeemDigit('0')" class="h-14 rounded-2xl bg-[#FFF8F0] hover:bg-orange-100/80 active:scale-95 border border-black/5 text-xl font-extrabold text-[#1A1A1A] tabular-nums">
+                0
+              </button>
+              <button onclick="backspaceRedeemDigit()" class="h-14 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-sm font-extrabold text-neutral-700 flex items-center justify-center">
+                ⌫
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function pressRedeemDigit(d) { if (redeemCodeBuffer.length < 6) { redeemCodeBuffer += d; redeemResult=null; renderCurrentView(); } }
+    function backspaceRedeemDigit() { redeemCodeBuffer=redeemCodeBuffer.slice(0,-1); redeemResult=null; renderCurrentView(); }
+    function clearRedeemDigits() { redeemCodeBuffer=''; redeemResult=null; renderCurrentView(); }
+    async function confirmGiveReward() {
+      const shop=state.shops.find(s=>s.id===state.ownerShopId);
+      if(!shop)return showToast('Pehle owner account se shop dashboard kholein.','warning');
+      if(redeemCodeBuffer.length!==6)return showToast('6-digit code enter karein.','warning');
+      const {data,error}=await window.ApnaLoopLiveDB.client.rpc('redeem_customer_reward',{p_shop_id:shop.id,p_code:redeemCodeBuffer});
+      if(error){redeemResult={ok:false,message:error.message};renderCurrentView();return showToast(error.message,'error');}
+      redeemResult=data;renderCurrentView();
+      if(data?.ok){await refreshShopDashboard(shop.id);showToast('Reward redeem ho gayi. Customer ka next 10-stamp cycle shuru!');}
+      else showToast(data?.message||'Code invalid hai.','warning');
+    }
+
+    function renderSuperAdminView() {
+      const totalShops = state.shops.length;
+      const activeSubs = state.shops.filter((s) => s.subscription_status !== 'Paused').length;
+      const totalCustomers = new Set(state.stamps.map((s) => s.customer_id)).size;
+      const totalStamps = state.stamps.filter((s) => s.status !== 'cancelled').length;
+      const totalRewards = state.rewards.filter((r) => r.status === 'redeemed').length;
+
+      return `
+        <div class="space-y-6 view-enter">
+          <div class="bg-[#1A1A1A] text-white rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-5 h-5 text-[#0F9D58]"></i>
+                <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">ApnaLoop Control Center</span>
+              </div>
+              <h2 class="text-2xl font-extrabold mt-1">Super Admin Dashboard</h2>
+            </div>
+            <div class="text-xs text-neutral-300 bg-white/10 px-3.5 py-2 rounded-2xl">
+              RLS Security • Short-Lived QR Tokens • One Stamp Per India Day
+            </div>
+          </div>
+
+          <!-- 6 Platform-Wide KPI Cards -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div class="bg-white rounded-2xl p-4 border border-black/5">
+              <p class="text-[11px] font-bold text-neutral-500">Total Shops</p>
+              <p class="text-2xl font-extrabold text-[#1A1A1A] tabular-nums mt-1">${totalShops}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-black/5">
+              <p class="text-[11px] font-bold text-neutral-500">Active Subs</p>
+              <p class="text-2xl font-extrabold text-[#0F9D58] tabular-nums mt-1">${activeSubs}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-black/5">
+              <p class="text-[11px] font-bold text-neutral-500">Total Customers</p>
+              <p class="text-2xl font-extrabold text-[#1A1A1A] tabular-nums mt-1">${totalCustomers}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-black/5">
+              <p class="text-[11px] font-bold text-neutral-500">Total Stamps</p>
+              <p class="text-2xl font-extrabold text-[#FF6B00] tabular-nums mt-1">${totalStamps}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-black/5">
+              <p class="text-[11px] font-bold text-neutral-500">Rewards Given</p>
+              <p class="text-2xl font-extrabold text-amber-600 tabular-nums mt-1">${totalRewards}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-black/5">
+              <p class="text-[11px] font-bold text-neutral-500">Fraud Blocked</p>
+              <p class="text-2xl font-extrabold text-red-600 tabular-nums mt-1">${state.fraudBlockedCount}</p>
+            </div>
+          </div>
+
+          <!-- Registered Shops Table -->
+          <div class="bg-white rounded-3xl p-5 sm:p-6 border border-black/5 shadow-xs overflow-x-auto">
+            <h3 class="font-extrabold text-base text-[#1A1A1A] mb-4">All Registered Shops</h3>
+            <table class="w-full text-left border-collapse min-w-[560px]">
+              <thead>
+                <tr class="border-b border-neutral-100 text-[11px] font-extrabold uppercase text-neutral-400">
+                  <th class="pb-3">Shop Name</th>
+                  <th class="pb-3">Category</th>
+                  <th class="pb-3">Owner Contact</th>
+                  <th class="pb-3">Stamps</th>
+                  <th class="pb-3">Subscription</th>
+                  <th class="pb-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-neutral-100 text-xs sm:text-sm">
+                ${state.shops
+                  .map((s) => {
+                    const sStamps = state.stamps.filter((st) => st.shop_id === s.id && st.status !== 'cancelled').length;
+                    return `
+                      <tr>
+                        <td class="py-3.5 font-extrabold text-[#1A1A1A]">${s.name}</td>
+                        <td class="py-3.5"><span class="px-2.5 py-1 rounded-lg bg-[#FFF8F0] text-xs font-bold">${s.category}</span></td>
+                        <td class="py-3.5 tabular-nums text-neutral-600">+91 ${s.phone}</td>
+                        <td class="py-3.5 font-extrabold tabular-nums">${sStamps}</td>
+                        <td class="py-3.5">
+                          <span class="px-2.5 py-1 rounded-full text-xs font-extrabold ${
+                            s.subscription_status === 'Paused'
+                              ? 'bg-red-50 text-red-600'
+                              : 'bg-emerald-50 text-[#0F9D58]'
+                          }">
+                            ${s.subscription_status}
+                          </span>
+                        </td>
+                        <td class="py-3.5 text-right">
+                          <button onclick="toggleShopSubscription('${s.id}')" class="px-3 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-xs font-bold text-neutral-700">
+                            Toggle Plan
+                          </button>
+                        </td>
+                      </tr>
+                    `;
+                  })
+                  .join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- System Activity & Security Audit Log -->
+          <div class="bg-white rounded-3xl p-5 sm:p-6 border border-black/5 shadow-xs">
+            <h3 class="font-extrabold text-base text-[#1A1A1A] mb-3">System Security & Audit Log</h3>
+            <div class="space-y-2.5 max-h-72 overflow-y-auto">
+              ${state.auditLogs
+                .slice(0, 20)
+                .map(
+                  (log) => `
+                <div class="p-3 rounded-2xl bg-[#FFF8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                  <div>
+                    <span class="font-extrabold text-[#0F9D58]">[${log.type}]</span>
+                    <strong class="text-[#1A1A1A] ml-1">${log.shop_name}:</strong>
+                    <span class="text-neutral-600 ml-1">${log.detail}</span>
+                  </div>
+                  <span class="text-[11px] text-neutral-400 tabular-nums shrink-0">${formatTimeAgo(log.timestamp)}</span>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleShopSubscription(shopId) {
+      const shop = state.shops.find((s) => s.id === shopId);
+      if (!shop) return;
+      const cycle = ['Trial', 'Active ₹149', 'Paused'];
+      const next = cycle[(cycle.indexOf(shop.subscription_status) + 1) % cycle.length];
+      shop.subscription_status = next;
+      if (window.ApnaLoopLiveDB) {
+        window.ApnaLoopLiveDB.patchRecord('shops', shop.id, { subscription_status: next });
+      }
+      logAudit('ADMIN_SUBSCRIPTION_CHANGE', shop.name, `Subscription status updated to "${next}"`);
+      saveState();
+      showToast(`${shop.name}: Status set to ${next}`);
+      renderCurrentView();
+    }
+
+    // Boot Application
+    window.addEventListener('DOMContentLoaded', async () => {
+      updateLiveDbBadge();
+      renderCurrentView();
+      if (window.ApnaLoopLiveDB && typeof window.ApnaLoopLiveDB.init === 'function') {
+        await window.ApnaLoopLiveDB.init();
+        await window.ApnaLoopLiveDB.seedInitialShopsIfEmpty(state.shops);
+        updateLiveDbBadge();
+      }
+    });
+  </script>
+
+  <!-- Supabase browser client. Publishable key is intended for client use; RLS is mandatory. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.ApnaLoopLiveDB = {
+      status: 'connecting', modeLabel: 'Connecting to Supabase…', projectLabel: 'ApnaLoop Mumbai', client: null,
+      async init() {
+        try {
+          const params=new URLSearchParams(window.location.search); const scannedShop=params.get('shop'); const scannedToken=params.get('qr'); const scannedRedeem=params.get('redeem');
+          if(scannedToken&&scannedShop){state.selectedShopId=scannedShop;state.pendingQrToken=scannedToken;state.currentView='customer';}
+          if(scannedRedeem&&/^\\d{6}$/.test(scannedRedeem)&&scannedShop){state.ownerShopId=scannedShop;state.selectedShopId=scannedShop;redeemCodeBuffer=scannedRedeem;state.currentView='redeem';}
+          if (!window.supabase?.createClient) throw new Error('Supabase JS library load nahi hui.');
+          this.client = window.supabase.createClient('https://aebdkkczseaytavprnjo.supabase.co',
+            'sb_publishable_GYcxh0kfdI53XKw0bqQ1kg_XpP3KtWE',
+            { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+          const { error } = await this.client.from('shops').select('id').limit(1);
+          if (error) throw error;
+          const { data: sessionData } = await this.client.auth.getSession();
+          this.status = 'connected'; this.modeLabel = 'Supabase Live Database'; this.lastSyncedAt = new Date().toISOString();
+          await this.refreshShops();
+          if (sessionData?.session?.user) await this.refreshCustomer(sessionData.session.user);
+          if(scannedShop&&state.shops.some(s=>s.id===scannedShop))state.selectedShopId=scannedShop;
+          if(state.pendingQrToken&&state.currentCustomer)await handleClaimStamp();
+          else if(state.currentView==='customer'&&state.currentCustomer&&state.selectedShopId){await refreshCustomerCard(state.selectedShopId);renderCurrentView();}
+          if(state.ownerShopId && !scannedRedeem) await refreshShopDashboard(state.ownerShopId);
+          this.setupRealtime();
+          renderCurrentView();
+        } catch (error) {
+          console.error('Supabase connection failed:', error);
+          this.status = 'error'; this.modeLabel = 'Database connection issue'; this.lastError = error.message;
+        }
+        if (typeof window.onLiveDbStateChange === 'function') window.onLiveDbStateChange();
+        return this.status === 'connected';
+      },
+      async refreshShops() {
+        const { data, error } = await this.client.from('shops')
+          .select('id,name,slug,business_type,city,description,is_active,created_at,owner_user_id')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        state.shops = (data || []).map(x => ({ id:x.id, name:x.name, phone:'', is_active:x.is_active, category:x.business_type,
+          reward_text:x.description || '10 stamps par reward', city:x.city, slug:x.slug, lat:null,lng:null,
+          subscription_status:'Trial',created_at:x.created_at,owner_user_id:x.owner_user_id }));
+        if (!state.selectedShopId || !state.shops.some(x => x.id === state.selectedShopId && x.is_active)) {
+          state.selectedShopId = state.shops.find(x => x.is_active)?.id || null;
+        }
+        const { data: u } = await this.client.auth.getUser();
+        const mine = state.shops.find(x => x.owner_user_id === u?.user?.id);
+        if (mine) state.ownerShopId = mine.id;
+      },
+      async refreshCustomer(user) {
+        const { data } = await this.client.from('customer_profiles').select('display_name,phone_e164').eq('user_id',user.id).maybeSingle();
+        if (data) state.currentCustomer = { id:user.id,name:data.display_name || 'Customer',
+          phone:(data.phone_e164 || user.phone || '').replace(/^\\+91/,''),verified_at:new Date().toISOString() };
+      },
+      setupRealtime() {
+        if (!this.client) return;
+        if (this.realtimeChannel) this.client.removeChannel(this.realtimeChannel);
+        const userKey = state.currentCustomer?.id || state.ownerShopId || 'session';
+        this.realtimeChannel = this.client.channel('apnaloop-loyalty-' + userKey)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'stamp_events' }, async () => {
+            try {
+              if (state.currentCustomer && state.selectedShopId) await refreshCustomerCard(state.selectedShopId);
+              if (state.ownerShopId) await refreshShopDashboard(state.ownerShopId);
+              if (['customer','dashboard'].includes(state.currentView)) renderCurrentView();
+            } catch (e) { console.warn('Realtime refresh skipped:', e.message); }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'reward_redemptions' }, async () => {
+            try {
+              if (state.currentCustomer && state.selectedShopId) await refreshCustomerCard(state.selectedShopId);
+              if (state.ownerShopId) await refreshShopDashboard(state.ownerShopId);
+              if (['customer','dashboard'].includes(state.currentView)) renderCurrentView();
+            } catch (e) { console.warn('Realtime refresh skipped:', e.message); }
+          })
+          .subscribe();
+      },
+      async signOut() { if (this.realtimeChannel) this.client?.removeChannel(this.realtimeChannel); if (this.client) await this.client.auth.signOut(); state.currentCustomer=null;state.ownerShopId=null;state.pendingOtp=null; },
+      async seedInitialShopsIfEmpty() {},
+      async upsertRecord() { return false; },
+      async patchRecord() { return false; },
+      getSavedCustomConfig() { return null; }, saveCustomConfig() {}, clearCustomConfig() {}
+    };
+  </script>
+</body>
+</html>
