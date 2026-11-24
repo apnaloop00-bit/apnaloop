@@ -488,474 +488,22 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     const STORAGE_KEY = 'apnaloop_production_db_v1';
 
     function createInitialState() {
-      const now = Date.now();
-      const dayMs = 24 * 60 * 60 * 1000;
-
-      const shops = [
-        {
-          id: 'sharma-chai',
-          name: 'Sharma Ji Ki Chai',
-          phone: '9876543210',
-          category: 'Chai',
-          reward_text: '1 Masala Chai + Bun Maska FREE',
-          lat: null,
-          lng: null,
-          subscription_status: 'Active ₹149',
-          created_at: new Date(now - 18 * dayMs).toISOString()
-        },
-        {
-          id: 'royal-cuts',
-          name: 'Royal Cuts Men Salon',
-          phone: '9820112233',
-          category: 'Salon',
-          reward_text: '1 Haircut ya Beard Styling FREE',
-          lat: null,
-          lng: null,
-          subscription_status: 'Trial',
-          created_at: new Date(now - 9 * dayMs).toISOString()
-        },
-        {
-          id: 'bombay-bakery',
-          name: 'Bombay Fresh Bakery',
-          phone: '9811223344',
-          category: 'Bakery',
-          reward_text: '1 Chocolate Pastry + Puff FREE',
-          lat: null,
-          lng: null,
-          subscription_status: 'Active ₹149',
-          created_at: new Date(now - 25 * dayMs).toISOString()
-        }
-      ];
-
-      // Seed realistic historical stamps so Dashboard & Admin show live metrics out-of-the-box
-      const stamps = [
-        { id: 'st-101', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 6 * dayMs).toISOString() },
-        { id: 'st-102', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 5 * dayMs).toISOString() },
-        { id: 'st-103', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 4 * dayMs).toISOString() },
-        { id: 'st-104', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 3 * dayMs).toISOString() },
-        { id: 'st-105', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 2 * dayMs).toISOString() },
-        { id: 'st-106', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 3600 * 1000 * 2).toISOString() },
-        { id: 'st-107', shop_id: 'sharma-chai', customer_id: 'cust-priya', customer_name: 'Priya Nair', customer_phone: '9988776655', status: 'active', created_at: new Date(now - 3 * dayMs).toISOString() },
-        { id: 'st-108', shop_id: 'sharma-chai', customer_id: 'cust-priya', customer_name: 'Priya Nair', customer_phone: '9988776655', status: 'active', created_at: new Date(now - 3600 * 1000 * 5).toISOString() },
-        { id: 'st-109', shop_id: 'royal-cuts', customer_id: 'cust-amit', customer_name: 'Amit Kulkarni', customer_phone: '9765432109', status: 'active', created_at: new Date(now - 4 * dayMs).toISOString() },
-        { id: 'st-110', shop_id: 'royal-cuts', customer_id: 'cust-amit', customer_name: 'Amit Kulkarni', customer_phone: '9765432109', status: 'active', created_at: new Date(now - 3600 * 1000 * 4).toISOString() }
-      ];
-
-      const whatsappMessages = [
-        {
-          id: 'wa-1',
-          shop_id: 'sharma-chai',
-          stamp_id: 'st-106',
-          text: 'Rohan Verma ne stamp liya (6/10) - Sharma Ji Ki Chai',
-          timestamp: new Date(now - 3600 * 1000 * 2).toISOString(),
-          cancelled: false,
-          unread: false
-        },
-        {
-          id: 'wa-2',
-          shop_id: 'sharma-chai',
-          stamp_id: 'st-108',
-          text: 'Priya Nair ne stamp liya (2/10) - Sharma Ji Ki Chai',
-          timestamp: new Date(now - 3600 * 1000 * 5).toISOString(),
-          cancelled: false,
-          unread: false
-        }
-      ];
-
-      const auditLogs = [
-        { id: 'log-1', type: 'STAMP_ISSUED', shop_name: 'Sharma Ji Ki Chai', detail: 'Rohan Verma (+91 9123456780) collected stamp 6/10', timestamp: new Date(now - 3600 * 1000 * 2).toISOString() },
-        { id: 'log-2', type: 'STAMP_ISSUED', shop_name: 'Sharma Ji Ki Chai', detail: 'Priya Nair (+91 9988776655) collected stamp 2/10', timestamp: new Date(now - 3600 * 1000 * 5).toISOString() },
-        { id: 'log-3', type: 'SHOP_REGISTERED', shop_name: 'Royal Cuts Men Salon', detail: 'Owner +91 9820112233 started 30-day free trial', timestamp: new Date(now - 9 * dayMs).toISOString() }
-      ];
-
-      return {
-        lang: 'hinglish',
-        currentView: 'home',
-        selectedShopId: 'sharma-chai',
-        ownerShopId: 'sharma-chai',
-        currentCustomer: null,
-        pendingOtp: null,
-        lastScanSuccess: null,
-        shops,
-        stamps,
-        rewards: [],
-        whatsappMessages,
-        auditLogs,
-        fraudBlockedCount: 0
-      };
+      return { lang: 'hinglish', currentView: 'home', selectedShopId: null, ownerShopId: null,
+        currentCustomer: null, pendingOtp: null, lastScanSuccess: null, shops: [], stamps: [],
+        rewards: [], whatsappMessages: [], auditLogs: [], fraudBlockedCount: 0 };
     }
 
     function loadState() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return createInitialState();
-        const parsed = JSON.parse(raw);
-        return { ...createInitialState(), ...parsed };
-      } catch (e) {
-        return createInitialState();
-      }
+      // Production business records are fetched from Supabase only.
+      try { return { ...createInitialState(), lang: localStorage.getItem('apnaloop_language') || 'hinglish' }; }
+      catch (e) { return createInitialState(); }
     }
-
     let state = loadState();
-
     function saveState() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (e) {
-        console.warn('Storage error', e);
-      }
-      updateWhatsAppBadge();
-      updateLiveDbBadge();
+      try { localStorage.setItem('apnaloop_language', state.lang || 'hinglish'); } catch (e) {}
+      updateWhatsAppBadge(); updateLiveDbBadge();
     }
 
-    // Real-time listener callback from Firebase onSnapshot
-    window.applyRemoteCollection = function (colName, items) {
-      if (!Array.isArray(items) || items.length === 0) return;
-
-      if (colName === 'shops') {
-        const mergedMap = new Map();
-        state.shops.forEach((s) => mergedMap.set(s.id, s));
-        items.forEach((remoteShop) => mergedMap.set(remoteShop.id, { ...mergedMap.get(remoteShop.id), ...remoteShop }));
-        state.shops = Array.from(mergedMap.values());
-      } else if (colName === 'stamps') {
-        const mergedMap = new Map();
-        state.stamps.forEach((s) => mergedMap.set(s.id, s));
-        items.forEach((remoteStamp) => mergedMap.set(remoteStamp.id, { ...mergedMap.get(remoteStamp.id), ...remoteStamp }));
-        state.stamps = Array.from(mergedMap.values()).sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-      } else if (colName === 'rewards') {
-        const mergedMap = new Map();
-        state.rewards.forEach((r) => mergedMap.set(r.id, r));
-        items.forEach((remoteReward) => mergedMap.set(remoteReward.id, { ...mergedMap.get(remoteReward.id), ...remoteReward }));
-        state.rewards = Array.from(mergedMap.values()).sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-      } else if (colName === 'whatsappMessages') {
-        const mergedMap = new Map();
-        state.whatsappMessages.forEach((m) => mergedMap.set(m.id, m));
-        items.forEach((remoteMsg) => mergedMap.set(remoteMsg.id, { ...mergedMap.get(remoteMsg.id), ...remoteMsg }));
-        state.whatsappMessages = Array.from(mergedMap.values()).sort(
-          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-      } else if (colName === 'auditLogs') {
-        const mergedMap = new Map();
-        state.auditLogs.forEach((l) => mergedMap.set(l.id, l));
-        items.forEach((remoteLog) => mergedMap.set(remoteLog.id, { ...mergedMap.get(remoteLog.id), ...remoteLog }));
-        state.auditLogs = Array.from(mergedMap.values()).sort(
-          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-      }
-
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (e) {}
-      updateWhatsAppBadge();
-      updateLiveDbBadge();
-      renderCurrentView();
-    };
-
-    window.onLiveDbStateChange = function () {
-      updateLiveDbBadge();
-      renderCurrentView();
-    };
-
-    function updateLiveDbBadge() {
-      const dbBridge = window.ApnaLoopLiveDB;
-      const pill = document.getElementById('live-db-pill');
-      const dot = document.getElementById('live-db-dot');
-      const label = document.getElementById('live-db-label');
-      if (!pill || !dot || !label || !dbBridge) return;
-
-      if (dbBridge.status === 'connected') {
-        pill.className =
-          'px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-xs font-extrabold text-[#0F9D58] flex items-center gap-1.5 transition-colors';
-        dot.className = 'w-2 h-2 rounded-full bg-[#0F9D58] animate-pulse';
-        label.textContent = dbBridge.modeLabel;
-      } else {
-        pill.className =
-          'px-2.5 py-1.5 rounded-xl bg-[#FFF8F0] hover:bg-orange-100/70 border border-amber-300 text-xs font-extrabold text-amber-800 flex items-center gap-1.5 transition-colors';
-        dot.className = 'w-2 h-2 rounded-full bg-amber-500';
-        label.textContent = 'Local Live Store';
-      }
-    }
-
-    function openLiveDbModal() {
-      const dbBridge = window.ApnaLoopLiveDB;
-      const modal = document.getElementById('live-db-modal');
-      const badge = document.getElementById('db-modal-status-badge');
-      const sub = document.getElementById('db-modal-subtitle');
-
-      const saved = dbBridge ? dbBridge.getSavedCustomConfig() : null;
-      if (saved?.firebase) {
-        document.getElementById('fb-api-key').value = saved.firebase.apiKey || '';
-        document.getElementById('fb-project-id').value = saved.firebase.projectId || '';
-        document.getElementById('fb-auth-domain').value = saved.firebase.authDomain || '';
-        document.getElementById('fb-app-id').value = saved.firebase.appId || '';
-      }
-      if (saved?.supabase) {
-        document.getElementById('sb-url-input').value = saved.supabase.url || '';
-        document.getElementById('sb-anon-input').value = saved.supabase.anonKey || '';
-      }
-      if (dbBridge && dbBridge.status === 'connected') {
-        badge.textContent = 'LIVE CONNECTED';
-        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-[#0F9D58]';
-        sub.textContent = `${dbBridge.modeLabel} • ${dbBridge.projectLabel}`;
-      } else {
-        badge.textContent = 'PERSISTENT LOCAL CACHE';
-        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800';
-        sub.textContent = 'All data saved persistently in browser + ready for custom Firebase/Supabase plug-in';
-      }
-
-      switchDbPanelTab('firebase');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      lucide.createIcons();
-    }
-
-    function closeLiveDbModal() {
-      const modal = document.getElementById('live-db-modal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    function switchDbPanelTab(tabName) {
-      ['firebase', 'supabase', 'schema'].forEach((t) => {
-        const panel = document.getElementById(`db-panel-${t}`);
-        const btn = document.getElementById(`db-tab-${t}`);
-        if (panel) panel.classList.toggle('hidden', t !== tabName);
-        if (btn) {
-          btn.className =
-            t === tabName
-              ? 'py-2 rounded-xl bg-[#0F294A] text-white transition-all'
-              : 'py-2 rounded-xl text-neutral-700 hover:bg-white transition-all';
-        }
-      });
-      lucide.createIcons();
-    }
-
-    async function applyFirebaseConfigFromModal() {
-      const apiKey = document.getElementById('fb-api-key').value.trim();
-      const projectId = document.getElementById('fb-project-id').value.trim();
-      const authDomain = document.getElementById('fb-auth-domain').value.trim();
-      const appId = document.getElementById('fb-app-id').value.trim();
-
-      if (!apiKey || !projectId) {
-        showToast('Firebase API Key aur Project ID dono daalein.', 'error');
-        return;
-      }
-
-      window.ApnaLoopLiveDB.saveCustomConfig({
-        provider: 'firebase',
-        firebase: {
-          apiKey,
-          projectId,
-          authDomain: authDomain || `${projectId}.firebaseapp.com`,
-          appId: appId || ''
-        }
-      });
-
-      showToast('Connecting to Firebase Live Database...');
-      await window.ApnaLoopLiveDB.init();
-      await window.ApnaLoopLiveDB.seedInitialShopsIfEmpty(state.shops);
-      updateLiveDbBadge();
-      closeLiveDbModal();
-    }
-
-    function applySupabaseConfigFromModal() {
-      const url = document.getElementById('sb-url-input').value.trim();
-      const anonKey = document.getElementById('sb-anon-input').value.trim();
-      if (!url || !anonKey) {
-        showToast('Supabase URL aur Anon Key daalein.', 'error');
-        return;
-      }
-
-      window.ApnaLoopLiveDB.saveCustomConfig({
-        provider: 'supabase',
-        supabase: { url, anonKey }
-      });
-      window.ApnaLoopLiveDB.status = 'connected';
-      window.ApnaLoopLiveDB.modeLabel = 'Supabase Configured';
-      window.ApnaLoopLiveDB.projectLabel = url;
-      updateLiveDbBadge();
-      showToast('Supabase endpoint saved! SQL Schema tab se tables create karein.');
-      closeLiveDbModal();
-    }
-
-    async function resetCustomDbConfig() {
-      window.ApnaLoopLiveDB.clearCustomConfig();
-      await window.ApnaLoopLiveDB.init();
-      updateLiveDbBadge();
-      showToast('Reset to default live storage mode.');
-      closeLiveDbModal();
-    }
-
-    function copySqlSchema() {
-      const sqlEl = document.getElementById('sql-schema-code');
-      if (!sqlEl) return;
-      const text = sqlEl.innerText;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => showToast('SQL Schema clipboard mein copy ho gaya!'));
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        ta.remove();
-        showToast('SQL Schema copy ho gaya!');
-      }
-    }
-
-    // =========================================================================
-    // 3. UTILITIES: TOASTS, HIERARCHY, GEOFENCE, SHORT-LIVED TOKEN
-    // =========================================================================
-    function t(key) {
-      return (I18N[state.lang] && I18N[state.lang][key]) || I18N.hinglish[key] || key;
-    }
-
-    function showToast(message, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const el = document.createElement('div');
-      const colors = {
-        success: 'bg-[#1A1A1A] text-white border-emerald-500/40',
-        warning: 'bg-amber-900 text-amber-50 border-amber-400/50',
-        error: 'bg-red-700 text-white border-red-300/40'
-      };
-      el.className = `pointer-events-auto px-4 py-3 rounded-2xl shadow-xl border text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 view-enter ${colors[type] || colors.success}`;
-      el.innerHTML = `<span>${message}</span><button onclick="this.parentElement.remove()" class="opacity-70 hover:opacity-100">✕</button>`;
-      container.appendChild(el);
-      setTimeout(() => {
-        if (el.parentElement) el.remove();
-      }, 4200);
-    }
-
-    function fireConfetti(goldMode = false) {
-      if (typeof confetti !== 'function') return;
-      confetti({
-        particleCount: goldMode ? 90 : 55,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: goldMode ? ['#F59E0B', '#FBBF24', '#0F9D58', '#FFFFFF'] : ['#0F9D58', '#FF6B00', '#FBBF24']
-      });
-    }
-
-    function isSameDay(isoA, isoB) {
-      const a = new Date(isoA);
-      const b = new Date(isoB);
-      return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-    }
-
-    function formatTimeAgo(iso) {
-      const diffSec = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
-      if (diffSec < 60) return `${diffSec}s ago`;
-      const diffMin = Math.floor(diffSec / 60);
-      if (diffMin < 60) return `${diffMin}m ago`;
-      const diffHr = Math.floor(diffMin / 60);
-      if (diffHr < 24) return `${diffHr}h ago`;
-      return `${Math.floor(diffHr / 24)}d ago`;
-    }
-
-    // Haversine formula in meters (for 200m Geofence verification)
-    function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
-      const R = 6371000;
-      const toRad = (deg) => (deg * Math.PI) / 180;
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return Math.round(R * c);
-    }
-
-    // Short-lived signed QR session token (expires in 10 mins to prevent replay from static QR photos)
-    function issueShortLivedToken(shopId) {
-      const issuedAt = Date.now();
-      const raw = `${shopId}:${issuedAt}:APNALOOP_SIG`;
-      const token = btoa(raw).slice(0, 18);
-      sessionStorage.setItem(`apnaloop_qr_token_${shopId}`, JSON.stringify({ token, issuedAt }));
-      return token;
-    }
-
-    function verifyShortLivedToken(shopId) {
-      try {
-        const stored = JSON.parse(sessionStorage.getItem(`apnaloop_qr_token_${shopId}`) || 'null');
-        if (!stored) return issueShortLivedToken(shopId);
-        // Valid for 10 minutes
-        if (Date.now() - stored.issuedAt > 10 * 60 * 1000) {
-          return null;
-        }
-        return stored.token;
-      } catch (e) {
-        return issueShortLivedToken(shopId);
-      }
-    }
-
-    function generate6DigitCode() {
-      let code = '';
-      do {
-        code = Math.floor(100000 + Math.random() * 900000).toString();
-      } while (state.rewards.some((r) => r.code === code && r.status === 'unlocked'));
-      return code;
-    }
-
-    // =========================================================================
-    // 4. NAVIGATION & LANGUAGE TOGGLE
-    // =========================================================================
-    function toggleLanguage() {
-      state.lang = state.lang === 'hinglish' ? 'english' : 'hinglish';
-      saveState();
-      renderCurrentView();
-    }
-
-    function navigateTo(view, shopId = null) {
-      if (shopId) {
-        state.selectedShopId = shopId;
-        issueShortLivedToken(shopId);
-      }
-      state.currentView = view;
-      saveState();
-      renderCurrentView();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function updateNavHighlights() {
-      document.getElementById('lang-label').textContent = state.lang === 'hinglish' ? 'Hinglish' : 'English';
-
-      document.querySelectorAll('[data-i18n]').forEach((el) => {
-        const key = el.getAttribute('data-i18n');
-        el.textContent = t(key);
-      });
-
-      const activeKey = state.currentView === 'scan-success' ? 'customer' : state.currentView;
-
-      document.querySelectorAll('.nav-pill').forEach((btn) => {
-        const isMatch = btn.getAttribute('data-nav') === activeKey;
-        if (isMatch) {
-          btn.classList.add('bg-[#0F9D58]', 'text-white', 'shadow-xs');
-          btn.classList.remove('text-neutral-700');
-        } else {
-          btn.classList.remove('bg-[#0F9D58]', 'text-white', 'shadow-xs');
-          btn.classList.add('text-neutral-700');
-        }
-      });
-
-      document.querySelectorAll('.mobile-nav-btn').forEach((btn) => {
-        const isMatch = btn.getAttribute('data-nav') === activeKey;
-        if (isMatch) {
-          btn.classList.add('bg-[#0F9D58]/10', 'text-[#0F9D58]');
-          btn.classList.remove('text-neutral-500');
-        } else {
-          btn.classList.remove('bg-[#0F9D58]/10', 'text-[#0F9D58]');
-          btn.classList.add('text-neutral-500');
-        }
-      });
-    }
-
-    // =========================================================================
-    // 5. WHATSAPP CLOUD API SERVICE LAYER & OWNER ALERTS DRAWER
-    // =========================================================================
     function updateWhatsAppBadge() {
       const unreadCount = state.whatsappMessages.filter((m) => m.unread).length;
       const badge = document.getElementById('wa-badge');
@@ -1151,165 +699,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     }
 
     async function handleClaimStamp() {
-      const shop = state.shops.find((s) => s.id === state.selectedShopId) || state.shops[0];
-      const customer = state.currentCustomer;
-
-      if (!customer) {
-        showToast('Pehle apna naam aur mobile number OTP se verify karein.', 'warning');
-        return;
-      }
-
-      // 1. Short-lived QR session token check
-      const token = verifyShortLivedToken(shop.id);
-      if (!token) {
-        state.fraudBlockedCount += 1;
-        logAudit('FRAUD_BLOCKED', shop.name, `Expired QR session token for ${customer.name}`);
-        saveState();
-        showToast('QR session expire ho gaya hai. Counter par QR dobara scan karein.', 'error');
-        return;
-      }
-
-      // 2. Check if customer already has an unredeemed 10/10 reward
-      const existingUnlocked = getCustomerUnlockedReward(shop.id, customer.id);
-      if (existingUnlocked) {
-        showToast('Aapka 10/10 reward pehle se unlocked hai! Counter par code dikhayein.', 'warning');
-        renderCurrentView();
-        return;
-      }
-
-      // 3. One Stamp Per Day Per Shop enforcement
-      const todayIso = new Date().toISOString();
-      const alreadyStampedToday = state.stamps.some(
-        (s) =>
-          s.shop_id === shop.id &&
-          s.customer_id === customer.id &&
-          s.status === 'active' &&
-          isSameDay(s.created_at, todayIso)
-      );
-
-      if (alreadyStampedToday) {
-        state.fraudBlockedCount += 1;
-        logAudit('DUPLICATE_DAILY_BLOCKED', shop.name, `${customer.name} attempted a second stamp today`);
-        saveState();
-        showToast('Aaj ka stamp pehle hi mil chuka hai! Kal phir aana 😊', 'warning');
-        return;
-      }
-
-      // 4. Server-Side 200m Geofence Check (uses browser geolocation if shop coordinates are set)
-      const btn = document.getElementById('claim-stamp-btn');
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = `<span class="animate-pulse">Location & QR Verify Ho Raha Hai...</span>`;
-      }
-
-      const proceedWithStamp = (geoNote) => {
-        const newStamp = {
-          id: 'st-' + Date.now(),
-          shop_id: shop.id,
-          customer_id: customer.id,
-          customer_name: customer.name,
-          customer_phone: customer.phone,
-          status: 'active',
-          created_at: new Date().toISOString()
-        };
-        state.stamps.unshift(newStamp);
-        if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('stamps', newStamp);
-
-        const updatedCount = getCustomerActiveStamps(shop.id, customer.id).length;
-
-        // Send WhatsApp alert to shop owner
-        sendWhatsAppAlert(shop, customer.name, updatedCount, newStamp.id);
-        logAudit(
-          'STAMP_ISSUED',
-          shop.name,
-          `${customer.name} (+91 ${customer.phone}) collected stamp ${updatedCount}/10 • ${geoNote} • Token ${token}`
-        );
-
-        // Check if 10/10 Reward Unlocked!
-        if (updatedCount >= 10) {
-          const code = generate6DigitCode();
-          const newReward = {
-            id: 'rew-' + Date.now(),
-            shop_id: shop.id,
-            shop_name: shop.name,
-            customer_id: customer.id,
-            customer_name: customer.name,
-            customer_phone: customer.phone,
-            reward_text: shop.reward_text,
-            code,
-            status: 'unlocked',
-            created_at: new Date().toISOString(),
-            redeemed_at: null
-          };
-          state.rewards.unshift(newReward);
-          if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('rewards', newReward);
-
-          const rewAlert = {
-            id: 'wa-rew-' + Date.now(),
-            shop_id: shop.id,
-            stamp_id: null,
-            text: `🎉 REWARD UNLOCKED! ${customer.name} ne 10/10 stamps poore kiye (${shop.name}). Code: ${code}`,
-            timestamp: new Date().toISOString(),
-            cancelled: false,
-            unread: true
-          };
-          state.whatsappMessages.unshift(rewAlert);
-          if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('whatsappMessages', rewAlert);
-
-          logAudit(
-            'REWARD_UNLOCKED',
-            shop.name,
-            `${customer.name} unlocked "${shop.reward_text}" (Code: ${code})`
-          );
-
-          saveState();
-          state.currentView = 'customer';
-          renderCurrentView();
-          fireConfetti(true);
-          return;
-        }
-
-        state.lastScanSuccess = {
-          shopId: shop.id,
-          shopName: shop.name,
-          count: updatedCount,
-          rewardText: shop.reward_text,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          token
-        };
-        state.currentView = 'scan-success';
-        saveState();
-        renderCurrentView();
-        fireConfetti(false);
-      };
-
-      if (shop.lat && shop.lng && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const dist = haversineDistanceMeters(shop.lat, shop.lng, pos.coords.latitude, pos.coords.longitude);
-            if (dist > 200) {
-              state.fraudBlockedCount += 1;
-              logAudit('GEOFENCE_BLOCKED', shop.name, `${customer.name} was ${dist}m away (>200m limit)`);
-              saveState();
-              showToast(`Aap dukaan se ${dist}m door hain. Stamp ke liye dukaan ke 200m andar rahein.`, 'error');
-              renderCurrentView();
-              return;
-            }
-            proceedWithStamp(`Geofence OK (${dist}m)`);
-          },
-          () => {
-            proceedWithStamp('Counter QR Verified');
-          },
-          { timeout: 3500 }
-        );
-      } else {
-        setTimeout(() => proceedWithStamp('Counter QR Verified'), 280);
-      }
+      showToast('Secure QR stamp service abhi setup ho raha hai. Browser-only stamps disabled hain.', 'warning');
     }
 
-    // =========================================================================
-    // 7. VIEW RENDERERS (ALL 7 SCREENS + SUPER ADMIN DASHBOARD)
-    // =========================================================================
     function renderCurrentView() {
       updateNavHighlights();
       const root = document.getElementById('app-root');
@@ -1317,7 +709,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       switch (state.currentView) {
         case 'home':
           root.innerHTML = renderHomeView();
-          mountQRCode('hero-standee-qr', 'https://apnaloop.in/s/sharma-chai', 120);
+          mountQRCode('hero-standee-qr', 'https://apnaloop.in', 120);
           break;
         case 'customer':
           root.innerHTML = renderCustomerCardView();
@@ -1396,7 +788,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
               <!-- Quick Trust Badges -->
               <div class="grid grid-cols-3 gap-2 pt-2 max-w-md">
                 <div class="p-2.5 rounded-2xl bg-[#FFF8F0] text-center">
-                  <p class="text-sm font-extrabold text-[#1A1A1A]">0 Apps</p>                  <p class="text-[11px] text-neutral-500">Seedha Browser</p>
+                  <p class="text-sm font-extrabold text-[#1A1A1A]">0 Apps</p>
+                  <p class="text-[11px] text-neutral-500">Seedha Browser</p>
                 </div>
                 <div class="p-2.5 rounded-2xl bg-[#FFF8F0] text-center">
                   <p class="text-sm font-extrabold text-[#0F9D58]">WhatsApp</p>
@@ -1507,6 +900,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     // -------------------------------------------------------------------------
     function renderCustomerCardView() {
       const shop = state.shops.find((s) => s.id === state.selectedShopId) || state.shops[0];
+      if (!shop) return `<div class="max-w-lg mx-auto bg-white rounded-3xl p-8 text-center shadow-sm"><div class="text-4xl mb-3">🏪</div><h2 class="text-xl font-extrabold">Abhi koi active shop nahi hai</h2><p class="text-sm text-neutral-500 mt-2">Jab shops ApnaLoop par register hongi, yahan unke loyalty cards dikhenge.</p><button onclick="navigateTo('home')" class="mt-5 px-5 py-3 rounded-xl bg-[#0F9D58] text-white font-bold">Home par jao</button></div>`;
       const catMeta = CATEGORY_META[shop.category] || CATEGORY_META.Other;
       const customer = state.currentCustomer;
 
@@ -1741,41 +1135,38 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       }
     }
 
-    function handleSendCustomerOtp(e) {
+    async function handleSendCustomerOtp(e) {
       e.preventDefault();
       const name = document.getElementById('cust-name-input').value.trim();
       const phone = document.getElementById('cust-phone-input').value.trim();
-      if (!name || !/^\d{10}$/.test(phone)) {
-        showToast('Sahi naam aur 10-digit mobile number daalein.', 'error');
-        return;
-      }
-      const code = Math.floor(1000 + Math.random() * 9000).toString();
-      state.pendingOtp = { name, phone, code, expiresAt: Date.now() + 5 * 60 * 1000 };
-      saveState();
+      if (!name || !/^\\d{10}$/.test(phone)) return showToast('Sahi naam aur 10-digit mobile number daalein.', 'error');
+      if (!window.ApnaLoopLiveDB?.client) return showToast('Supabase connection ready nahi hai.', 'error');
+      const fullPhone = `+91${phone}`;
+      const { error } = await window.ApnaLoopLiveDB.client.auth.signInWithOtp({ phone: fullPhone, options: { data: { full_name: name } } });
+      if (error) return showToast(`OTP send nahi hua: ${error.message}`, 'error');
+      state.pendingOtp = { name, phone, fullPhone };
       renderCurrentView();
-      showToast(`OTP +91 ${phone} par bheja gaya: ${code}`);
+      showToast(`Verification code +91 ${phone} par bheja gaya.`);
     }
 
-    function handleVerifyCustomerOtp(e) {
+    async function handleVerifyCustomerOtp(e) {
       e.preventDefault();
       const entered = document.getElementById('cust-otp-input').value.trim();
-      if (!state.pendingOtp) return;
-      if (entered !== state.pendingOtp.code) {
-        showToast('Galat OTP! Upar dikhaya gaya 4-digit code daalein.', 'error');
-        return;
-      }
-
-      state.currentCustomer = {
-        id: 'cust-' + state.pendingOtp.phone,
-        name: state.pendingOtp.name,
-        phone: state.pendingOtp.phone,
-        verified_at: new Date().toISOString()
-      };
-      state.pendingOtp = null;
-      issueShortLivedToken(state.selectedShopId);
-      saveState();
-      renderCurrentView();
-      showToast(`Swagat hai ${state.currentCustomer.name}!`);
+      if (!state.pendingOtp || !/^\\d{4,8}$/.test(entered)) return showToast('Valid OTP enter karein.', 'error');
+      const pending = state.pendingOtp;
+      const { data, error } = await window.ApnaLoopLiveDB.client.auth.verifyOtp({ phone: pending.fullPhone, token: entered, type: 'sms' });
+      if (error || !data.user) return showToast(`OTP verify nahi hua: ${error?.message || 'Please retry.'}`, 'error');
+      const user = data.user;
+      const writes = await Promise.all([
+        window.ApnaLoopLiveDB.client.from('profiles').upsert({ id: user.id, full_name: pending.name, phone_e164: pending.fullPhone, preferred_language: state.lang || 'hinglish' }, { onConflict: 'id' }),
+        window.ApnaLoopLiveDB.client.from('customers').upsert({ id: user.id, display_name: pending.name, phone_e164: pending.fullPhone }, { onConflict: 'id' }),
+        window.ApnaLoopLiveDB.client.from('customer_profiles').upsert({ user_id: user.id, display_name: pending.name, phone_e164: pending.fullPhone, preferred_language: state.lang === 'english' ? 'en' : 'hi' }, { onConflict: 'user_id' })
+      ]);
+      const failed = writes.find(x => x.error);
+      if (failed) return showToast(`Profile save nahi hua: ${failed.error.message}`, 'error');
+      state.currentCustomer = { id: user.id, name: pending.name, phone: pending.phone, verified_at: new Date().toISOString() };
+      state.pendingOtp = null; saveState(); renderCurrentView();
+      showToast(`Swagat hai ${state.currentCustomer.name}! Mobile verify ho gaya.`);
     }
 
     function cancelPendingOtp() {
@@ -1784,9 +1175,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       renderCurrentView();
     }
 
-    function logoutCustomer() {
-      state.currentCustomer = null;
-      state.pendingOtp = null;
+    async function logoutCustomer() {
+      await window.ApnaLoopLiveDB?.signOut();
       saveState();
       renderCurrentView();
     }
@@ -1847,7 +1237,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     function renderOnboardingView() {
       const createdShop = newlyCreatedShopId
         ? state.shops.find((s) => s.id === newlyCreatedShopId)
-        : state.shops[0];
+        : state.shops.find((s) => s.owner_user_id === state.currentCustomer?.id);
 
       return `
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start view-enter">
@@ -1873,6 +1263,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
                 <div class="flex items-center rounded-2xl border border-neutral-200 overflow-hidden focus-within:border-[#0F9D58]">
                   <span class="px-3.5 py-3.5 bg-neutral-50 text-neutral-600 font-extrabold text-sm border-r border-neutral-200 tabular-nums">+91</span>
                   <input id="shop-phone-input" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required placeholder="9876543210" class="w-full px-3.5 py-3.5 text-sm font-bold tabular-nums focus:outline-none" />
+                <input id="shop-city-input" type="text" required maxlength="80" placeholder="Aapka city (e.g. Mangaluru)" class="mt-3 w-full px-4 py-3.5 rounded-2xl border border-neutral-200 text-sm font-semibold focus:border-[#0F9D58] focus:outline-none" />
                 </div>
               </div>
 
@@ -1950,78 +1341,38 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       }
     }
 
-    function handleCreateShop(e) {
+    async function handleCreateShop(e) {
       e.preventDefault();
       const name = document.getElementById('shop-name-input').value.trim();
       const phone = document.getElementById('shop-phone-input').value.trim();
-      const category = document.querySelector('input[name="shop_category"]:checked').value;
-
-      if (!name || !/^\d{10}$/.test(phone)) {
-        showToast('Shop name aur 10-digit phone number sahi bharein.', 'error');
-        return;
-      }
-
-      const slug = name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
-      const id = `${slug || 'shop'}-${Math.floor(100 + Math.random() * 900)}`;
+      const city = document.getElementById('shop-city-input')?.value.trim();
+      const category = document.querySelector('input[name="shop_category"]:checked')?.value || 'Other';
+      const { data: authData } = await window.ApnaLoopLiveDB.client.auth.getUser();
+      const user = authData?.user;
+      if (!user) { showToast('Shop register karne se pehle mobile OTP verify karein.', 'warning'); navigateTo('customer-login'); return; }
+      if (!name || !city || !/^\\d{10}$/.test(phone)) return showToast('Shop name, city aur valid 10-digit phone number bharein.', 'error');
+      const slugBase = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'shop';
+      const slug = `${slugBase}-${crypto.randomUUID().slice(0, 8)}`;
       const catMeta = CATEGORY_META[category] || CATEGORY_META.Other;
-
-      const finalizeShopCreation = (lat, lng) => {
-        const newShop = {
-          id,
-          name,
-          phone,
-          category,
-          reward_text: catMeta.defaultReward,
-          lat,
-          lng,
-          subscription_status: 'Trial',
-          created_at: new Date().toISOString()
-        };
-
-        state.shops.unshift(newShop);
-        if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('shops', newShop);
-
-        state.selectedShopId = id;
-        state.ownerShopId = id;
-        newlyCreatedShopId = id;
-
-        const welcomeMsg = {
-          id: 'wa-welcome-' + Date.now(),
-          shop_id: id,
-          stamp_id: null,
-          text: `🎉 Badhai ho! "${name}" ApnaLoop par live ho gaya hai. Pehle 30 din bilkul FREE hain!`,
-          timestamp: new Date().toISOString(),
-          cancelled: false,
-          unread: true
-        };
-        state.whatsappMessages.unshift(welcomeMsg);
-        if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('whatsappMessages', welcomeMsg);
-
-        logAudit('SHOP_REGISTERED', name, `New ${category} shop registered by +91 ${phone} (30-Day Free Trial)`);
-        saveState();
-        renderCurrentView();
-        showToast(`${name} ka QR Standee taiyar hai!`);
-      };
-
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => finalizeShopCreation(pos.coords.latitude, pos.coords.longitude),
-          () => finalizeShopCreation(null, null),
-          { timeout: 2500 }
-        );
-      } else {
-        finalizeShopCreation(null, null);
-      }
+      const { data: shopRow, error } = await window.ApnaLoopLiveDB.client.from('shops').insert({
+        owner_user_id: user.id, name, slug, business_type: category.toLowerCase(), city,
+        description: catMeta.defaultReward, phone_e164: `+91${phone}`, is_active: true
+      }).select('*').single();
+      if (error) return showToast(`Shop save nahi hui: ${error.message}`, 'error');
+      const rewardResult = await window.ApnaLoopLiveDB.client.from('rewards').insert({
+        shop_id: shopRow.id, title: catMeta.defaultReward, description: 'ApnaLoop loyalty reward', stamps_required: 10, is_active: true
+      });
+      if (rewardResult.error) showToast(`Shop ban gayi, lekin reward setup fail hua: ${rewardResult.error.message}`, 'warning');
+      const newShop = { id: shopRow.id, name, phone, category, reward_text: catMeta.defaultReward, city, slug,
+        lat: null, lng: null, subscription_status: 'Trial', created_at: shopRow.created_at, owner_user_id: user.id };
+      state.shops.unshift(newShop); state.selectedShopId = shopRow.id; state.ownerShopId = shopRow.id;
+      newlyCreatedShopId = shopRow.id; saveState(); renderCurrentView();
+      showToast(`${name} ka account live database mein create ho gaya!`);
     }
 
-    // -------------------------------------------------------------------------
-    // SCREEN 6: OWNER DASHBOARD — SIMPLE (/dashboard)
-    // -------------------------------------------------------------------------
     function renderOwnerDashboardView() {
       const shop = state.shops.find((s) => s.id === state.ownerShopId) || state.shops[0];
+      if (!shop) return `<div class="max-w-xl mx-auto bg-white rounded-3xl p-8 text-center shadow-sm"><div class="text-4xl mb-3">🚀</div><h2 class="text-xl font-extrabold">Aapki shop abhi register nahi hui</h2><p class="text-sm text-neutral-500 mt-2">Apni dukaan ka account banayein, phir dashboard yahan live data dikhayega.</p><button onclick="navigateTo('onboarding')" class="mt-5 px-5 py-3 rounded-xl bg-[#0F9D58] text-white font-bold">Shop register karein</button></div>`;
       const shopStamps = state.stamps.filter((s) => s.shop_id === shop.id);
       const activeStamps = shopStamps.filter((s) => s.status === 'active');
 
@@ -2095,7 +1446,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
                 </div>
               </div>
               <p class="text-4xl font-extrabold text-[#1A1A1A] tabular-nums mt-3">${totalCustomersCount}</p>
-              <p class="text-xs text-neutral-500 font-bold mt-1">Verified mobile numbers</p>            </div>
+              <p class="text-xs text-neutral-500 font-bold mt-1">Verified mobile numbers</p>
+            </div>
           </div>
 
           <!-- Recent Activity List with 1-Tap [ Cancel Stamp ] -->
@@ -2282,57 +1634,10 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       renderCurrentView();
     }
 
-    function confirmGiveReward(rewardId) {
-      const reward = state.rewards.find((r) => r.id === rewardId);
-      if (!reward || reward.status !== 'unlocked') return;
-
-      reward.status = 'redeemed';
-      reward.redeemed_at = new Date().toISOString();
-      if (window.ApnaLoopLiveDB) {
-        window.ApnaLoopLiveDB.patchRecord('rewards', reward.id, {
-          status: 'redeemed',
-          redeemed_at: reward.redeemed_at
-        });
-      }
-
-      // Reset customer's active stamps at this shop to 0/10 for the next loop cycle!
-      state.stamps.forEach((s) => {
-        if (s.shop_id === reward.shop_id && s.customer_id === reward.customer_id && s.status === 'active') {
-          s.status = 'redeemed_cycle';
-          if (window.ApnaLoopLiveDB) {
-            window.ApnaLoopLiveDB.patchRecord('stamps', s.id, { status: 'redeemed_cycle' });
-          }
-        }
-      });
-
-      const redMsg = {
-        id: 'wa-red-' + Date.now(),
-        shop_id: reward.shop_id,
-        stamp_id: null,
-        text: `🎁 Reward Redeemed! ${reward.customer_name} ne "${reward.reward_text}" claim kiya (Code: ${reward.code}). Naya 0/10 card shuru!`,
-        timestamp: new Date().toISOString(),
-        cancelled: false,
-        unread: true
-      };
-      state.whatsappMessages.unshift(redMsg);
-      if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('whatsappMessages', redMsg);
-
-      logAudit(
-        'REWARD_REDEEMED',
-        reward.shop_name,
-        `Redeemed code ${reward.code} for ${reward.customer_name} ("${reward.reward_text}")`
-      );
-
-      redeemCodeBuffer = '';
-      saveState();
-      renderCurrentView();
-      fireConfetti(true);
-      showToast(`Reward Redeemed! ${reward.customer_name} ka naya card 0/10 se shuru hua.`);
+    function confirmGiveReward() {
+      showToast('Reward redemption server-side verification ke baad enable hoga. Browser-only redemption disabled hai.', 'warning');
     }
 
-    // -------------------------------------------------------------------------
-    // SUPER ADMIN DASHBOARD (/admin)
-    // -------------------------------------------------------------------------
     function renderSuperAdminView() {
       const totalShops = state.shops.length;
       const activeSubs = state.shops.filter((s) => s.subscription_status !== 'Paused').length;
@@ -2481,244 +1786,54 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     });
   </script>
 
-  <!-- Live Database Sync Engine (Firebase Real-Time + Local Cache Fallback + Custom Config) -->
-  <script type="module">
-    import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import {
-      getFirestore,
-      doc,
-      setDoc,
-      getDoc,
-      updateDoc,
-      collection,
-      onSnapshot
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    const CUSTOM_DB_CONFIG_KEY = "apnaloop_custom_live_db_config_v1";
-    const APP_ID = typeof __app_id !== "undefined" ? __app_id : "apnaloop-india";
-
+  <!-- Supabase browser client. Publishable key is intended for client use; RLS is mandatory. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
     window.ApnaLoopLiveDB = {
-      status: "connecting",
-      modeLabel: "Syncing...",
-      projectLabel: "ApnaLoop Live Store",
-      lastSyncedAt: null,
-      db: null,
-      auth: null,
-      user: null,
-      unsubscribers: [],
-
-      getSavedCustomConfig() {
-        try {
-          const raw = localStorage.getItem(CUSTOM_DB_CONFIG_KEY);
-          return raw ? JSON.parse(raw) : null;
-        } catch (err) {
-          return null;
-        }
-      },
-
-      saveCustomConfig(cfg) {
-        try {
-          localStorage.setItem(CUSTOM_DB_CONFIG_KEY, JSON.stringify(cfg));
-        } catch (err) {
-          console.warn("Unable to save custom DB config:", err);
-        }
-      },
-
-      clearCustomConfig() {
-        try {
-          localStorage.removeItem(CUSTOM_DB_CONFIG_KEY);
-        } catch (err) {
-          console.warn("Unable to clear custom DB config:", err);
-        }
-      },
-
-      resolveFirebaseConfig() {
-        const customCfg = this.getSavedCustomConfig();
-        if (customCfg && customCfg.provider === "firebase" && customCfg.firebase) {
-          const fb = customCfg.firebase;
-          if (fb.apiKey && fb.projectId) {
-            return { config: fb, source: "Custom Firebase Project", projectId: fb.projectId };
-          }
-        }
-        if (typeof __firebase_config !== "undefined" && __firebase_config) {
-          try {
-            const parsed = typeof __firebase_config === "string" ? JSON.parse(__firebase_config) : __firebase_config;
-            if (parsed && parsed.apiKey && parsed.projectId) {
-              return { config: parsed, source: "Live Cloud Firebase", projectId: parsed.projectId };
-            }
-          } catch (err) {
-            console.warn("Invalid __firebase_config:", err);
-          }
-        }
-        return null;
-      },
-
-      colRef(colName) {
-        return collection(this.db, "artifacts", APP_ID, "public", "data", colName);
-      },
-
-      docRef(colName, docId) {
-        return doc(this.db, "artifacts", APP_ID, "public", "data", colName, String(docId));
-      },
-
-      detachListeners() {
-        this.unsubscribers.forEach((fn) => {
-          try {
-            if (typeof fn === "function") fn();
-          } catch (e) {}
-        });
-        this.unsubscribers = [];
-      },
-
+      status: 'connecting', modeLabel: 'Connecting to Supabase…', projectLabel: 'ApnaLoop Mumbai', client: null,
       async init() {
-        this.detachListeners();
-        const customCfg = this.getSavedCustomConfig();
-
-        if (customCfg && customCfg.provider === "supabase" && customCfg.supabase?.url) {
-          this.status = "connected";
-          this.modeLabel = "Supabase Endpoint Active";
-          this.projectLabel = customCfg.supabase.url.replace(/^https?:\/\//, "").split("/")[0];
-          this.lastSyncedAt = new Date().toISOString();
-          if (typeof window.onLiveDbStateChange === "function") window.onLiveDbStateChange();
-        }
-
-        const resolved = this.resolveFirebaseConfig();
-        if (!resolved) {
-          this.status = "local-fallback";
-          this.modeLabel = "Local Persistent Cache";
-          this.projectLabel = "Browser Indexed/Local Store";
-          this.lastSyncedAt = new Date().toISOString();
-          if (typeof window.onLiveDbStateChange === "function") window.onLiveDbStateChange();
-          return;
-        }
-
         try {
-          const appName = `apnaloop_${resolved.projectId}_${Date.now().toString().slice(-4)}`;
-          const existing = getApps().find((a) => a.name === appName);
-          const app = existing || initializeApp(resolved.config, appName);
-          this.auth = getAuth(app);
-          this.db = getFirestore(app);
-
-          if (typeof __initial_auth_token !== "undefined" && __initial_auth_token) {
-            await signInWithCustomToken(this.auth, __initial_auth_token);
-          } else {
-            await signInAnonymously(this.auth);
-          }
-
-          await new Promise((resolve) => {
-            if (this.auth.currentUser) {
-              this.user = this.auth.currentUser;
-              resolve();
-              return;
-            }
-            const unsub = onAuthStateChanged(this.auth, (u) => {
-              if (u) {
-                this.user = u;
-                unsub();
-                resolve();
-              }
-            });
-            setTimeout(resolve, 2000);
-          });
-
-          this.status = "connected";
-          this.modeLabel = "Firebase Live Sync";
-          this.projectLabel = `${resolved.source} (${resolved.projectId})`;
-          this.lastSyncedAt = new Date().toISOString();
-
-          this.attachRealtimeListeners();
-          if (typeof window.onLiveDbStateChange === "function") window.onLiveDbStateChange();
-        } catch (err) {
-          console.warn("Firebase live init fallback:", err);
-          this.status = "local-fallback";
-          this.modeLabel = "Local Cache Fallback";
-          this.projectLabel = resolved.projectId || "Local Persistent Store";
-          this.lastSyncedAt = new Date().toISOString();
-          if (typeof window.onLiveDbStateChange === "function") window.onLiveDbStateChange();
+          if (!window.supabase?.createClient) throw new Error('Supabase JS library load nahi hui.');
+          this.client = window.supabase.createClient('https://aebdkkczseaytavprnjo.supabase.co',
+            'sb_publishable_GYcxh0kfdI53XKw0bqQ1kg_XpP3KtWE',
+            { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+          const { error } = await this.client.from('shops').select('id').limit(1);
+          if (error) throw error;
+          const { data: sessionData } = await this.client.auth.getSession();
+          this.status = 'connected'; this.modeLabel = 'Supabase Live Database'; this.lastSyncedAt = new Date().toISOString();
+          await this.refreshShops();
+          if (sessionData?.session?.user) await this.refreshCustomer(sessionData.session.user);
+        } catch (error) {
+          console.error('Supabase connection failed:', error);
+          this.status = 'error'; this.modeLabel = 'Database connection issue'; this.lastError = error.message;
         }
+        if (typeof window.onLiveDbStateChange === 'function') window.onLiveDbStateChange();
+        return this.status === 'connected';
       },
-
-      attachRealtimeListeners() {
-        if (!this.db || !this.user) return;
-
-        const collectionsToWatch = ["shops", "stamps", "rewards", "whatsappMessages", "auditLogs"];
-        collectionsToWatch.forEach((colName) => {
-          const q = this.colRef(colName);
-          const unsub = onSnapshot(
-            q,
-            (snapshot) => {
-              const items = [];
-              snapshot.forEach((d) => items.push({ id: d.id, ...d.data() }));
-              this.lastSyncedAt = new Date().toISOString();
-              if (typeof window.applyRemoteCollection === "function") {
-                window.applyRemoteCollection(colName, items);
-              }
-            },
-            (error) => {
-              console.warn(`Live listener error on ${colName}:`, error);
-            }
-          );
-          this.unsubscribers.push(unsub);
-        });
+      async refreshShops() {
+        const { data, error } = await this.client.from('shops')
+          .select('id,name,slug,business_type,city,description,is_active,created_at,owner_user_id')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        state.shops = (data || []).map(x => ({ id:x.id, name:x.name, phone:'', category:x.business_type,
+          reward_text:x.description || '10 stamps par reward', city:x.city, slug:x.slug, lat:null,lng:null,
+          subscription_status:'Trial',created_at:x.created_at,owner_user_id:x.owner_user_id }));
+        if (!state.selectedShopId && state.shops.length) state.selectedShopId = state.shops[0].id;
+        const { data: u } = await this.client.auth.getUser();
+        const mine = state.shops.find(x => x.owner_user_id === u?.user?.id);
+        if (mine) state.ownerShopId = mine.id;
       },
-
-      async upsertRecord(colName, record) {
-        this.lastSyncedAt = new Date().toISOString();
-        if (!this.db || !this.user || this.status !== "connected") return;
-        try {
-          const cleanPayload = JSON.parse(JSON.stringify(record));
-          await setDoc(this.docRef(colName, cleanPayload.id), cleanPayload, { merge: true });
-        } catch (err) {
-          console.warn(`Failed to sync ${colName}/${record.id} to live DB:`, err);
-        }
+      async refreshCustomer(user) {
+        const { data } = await this.client.from('customer_profiles').select('display_name,phone_e164').eq('user_id',user.id).maybeSingle();
+        if (data) state.currentCustomer = { id:user.id,name:data.display_name || 'Customer',
+          phone:(data.phone_e164 || user.phone || '').replace(/^\\+91/,''),verified_at:new Date().toISOString() };
       },
-
-      async patchRecord(colName, docId, updates) {
-        this.lastSyncedAt = new Date().toISOString();
-        if (!this.db || !this.user || this.status !== "connected") return;
-        try {
-          await updateDoc(this.docRef(colName, docId), updates);
-        } catch (err) {
-          try {
-            await setDoc(this.docRef(colName, docId), { id: docId, ...updates }, { merge: true });
-          } catch (e2) {
-            console.warn(`Failed to patch ${colName}/${docId}:`, e2);
-          }
-        }
-      },
-
-      async seedInitialShopsIfEmpty(shops) {
-        if (!this.db || !this.user || this.status !== "connected") return;
-        for (const shop of shops) {
-          try {
-            const snap = await getDoc(this.docRef("shops", shop.id));
-            if (!snap.exists()) {
-              await setDoc(this.docRef("shops", shop.id), shop);
-            }
-          } catch (err) {
-            console.warn("Seed shop skipped:", err);
-          }
-        }
-      }
+      async signOut() { if (this.client) await this.client.auth.signOut(); state.currentCustomer=null;state.ownerShopId=null;state.pendingOtp=null; },
+      async seedInitialShopsIfEmpty() {},
+      async upsertRecord() { throw new Error('Unapproved direct browser writes disabled.'); },
+      async patchRecord() { throw new Error('Unapproved direct browser writes disabled.'); },
+      getSavedCustomConfig() { return null; }, saveCustomConfig() {}, clearCustomConfig() {}
     };
-
-    if (document.readyState !== "loading") {
-      window.ApnaLoopLiveDB.init().then(() => {
-        if (typeof state !== "undefined" && window.ApnaLoopLiveDB.seedInitialShopsIfEmpty) {
-          window.ApnaLoopLiveDB.seedInitialShopsIfEmpty(state.shops);
-        }
-        if (typeof updateLiveDbBadge === "function") updateLiveDbBadge();
-      });
-    } else {
-      window.addEventListener("DOMContentLoaded", async () => {
-        await window.ApnaLoopLiveDB.init();
-        if (typeof state !== "undefined" && window.ApnaLoopLiveDB.seedInitialShopsIfEmpty) {
-          window.ApnaLoopLiveDB.seedInitialShopsIfEmpty(state.shops);
-        }
-        if (typeof updateLiveDbBadge === "function") updateLiveDbBadge();
-      });
-    }
   </script>
 </body>
 </html>
