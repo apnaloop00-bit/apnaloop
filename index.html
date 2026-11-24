@@ -489,8 +489,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
     function createInitialState() {
       return { lang: 'hinglish', currentView: 'home', selectedShopId: null, ownerShopId: null,
-        currentCustomer: null, pendingOtp: null, lastScanSuccess: null, shops: [], stamps: [],
-        rewards: [], whatsappMessages: [], auditLogs: [], fraudBlockedCount: 0 };
+        currentCustomer: null, pendingOtp: null, pendingQrToken: null, lastScanSuccess: null, shops: [], stamps: [],
+        rewards: [], whatsappMessages: [], auditLogs: [], fraudBlockedCount: 0, dashboardStats: null };
     }
 
     function loadState() {
@@ -503,6 +503,46 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       try { localStorage.setItem('apnaloop_language', state.lang || 'hinglish'); } catch (e) {}
       updateWhatsAppBadge(); updateLiveDbBadge();
     }
+
+    let liveQrRefreshTimer = null;
+    let redeemResult = null;
+    function navigateTo(view, param) {
+      if (view === 'customer' && param) state.selectedShopId = param;
+      if (view === 'dashboard' && !state.ownerShopId) state.ownerShopId = state.shops.find(s => s.owner_user_id === state.currentCustomer?.id)?.id || null;
+      state.currentView = view; renderCurrentView();
+      if (view !== 'dashboard' && liveQrRefreshTimer) { clearInterval(liveQrRefreshTimer); liveQrRefreshTimer = null; }
+      if (view === 'customer' && state.currentCustomer && state.selectedShopId) refreshCustomerCard(state.selectedShopId).then(renderCurrentView).catch(e => showToast(e.message,'error'));
+      if (view === 'dashboard' && state.ownerShopId) { refreshShopDashboard(state.ownerShopId).then(renderCurrentView).catch(e => showToast(e.message,'error')); mountLiveShopQR(); }
+    }
+    async function refreshCustomerCard(shopId) {
+      if (!window.ApnaLoopLiveDB?.client || !state.currentCustomer) return;
+      const { data, error } = await window.ApnaLoopLiveDB.client.rpc('get_customer_loyalty', { p_shop_id: shopId });
+      if (error) throw error;
+      const rows = Array.isArray(data?.stamps) ? data.stamps : [];
+      state.stamps = state.stamps.filter(s => s.shop_id !== shopId).concat(rows.map(s => ({ id:s.id, shop_id:shopId, customer_id:state.currentCustomer.id, status:'active', created_at:s.created_at, stamp_date:s.stamp_date })));
+      state.rewards = state.rewards.filter(r => r.shop_id !== shopId);
+      if (data?.unlocked_reward) { const shop=state.shops.find(s=>s.id===shopId); state.rewards.unshift({ id:data.unlocked_reward.id, shop_id:shopId, customer_id:state.currentCustomer.id, status:'unlocked', code:data.unlocked_reward.code, reward_text:data.unlocked_reward.title, shop_name:shop?.name||'Shop', customer_name:state.currentCustomer.name, customer_phone:state.currentCustomer.phone }); }
+      return data;
+    }
+    async function refreshShopDashboard(shopId) {
+      if (!window.ApnaLoopLiveDB?.client || !shopId) return;
+      const { data, error } = await window.ApnaLoopLiveDB.client.rpc('get_shop_dashboard', { p_shop_id: shopId });
+      if (error) throw error;
+      state.dashboardStats = { shopId, ...(data?.stats || {}) };
+      const rows = Array.isArray(data?.recent_activity) ? data.recent_activity : [];
+      state.stamps = state.stamps.filter(s=>s.shop_id!==shopId).concat(rows.map(s=>({ id:s.id,shop_id:s.shop_id,customer_id:s.customer_id,customer_name:s.customer_name,customer_phone:(s.customer_phone||'').replace(/^\\+91/,''),status:s.status||'active',created_at:s.created_at })));
+      return data;
+    }
+    async function refreshLiveShopQR() {
+      const shop=state.shops.find(s=>s.id===state.ownerShopId), node=document.getElementById('owner-live-shop-qr');
+      if(!shop||!node||!window.ApnaLoopLiveDB?.client)return;
+      const {data,error}=await window.ApnaLoopLiveDB.client.rpc('issue_shop_qr_session',{p_shop_id:shop.id});
+      if(error){const label=document.getElementById('owner-live-shop-qr-status');if(label)label.textContent=error.message;return;}
+      const url=new URL(window.location.origin+'/');url.searchParams.set('shop',shop.id);url.searchParams.set('qr',data.token);
+      mountQRCode('owner-live-shop-qr',url.toString(),190);
+      const label=document.getElementById('owner-live-shop-qr-status');if(label)label.textContent='QR 2 minute tak valid hai; har 90 second mein refresh hota hai.';
+    }
+    function mountLiveShopQR(){if(liveQrRefreshTimer)clearInterval(liveQrRefreshTimer);refreshLiveShopQR();liveQrRefreshTimer=setInterval(()=>{if(state.currentView==='dashboard')refreshLiveShopQR();},90000);}
 
     function updateWhatsAppBadge() {
       const unreadCount = state.whatsappMessages.filter((m) => m.unread).length;
@@ -622,6 +662,18 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     // =========================================================================
     // 6. CORE STAMP, REWARD & CANCELLATION BUSINESS LOGIC
     // =========================================================================
+    async function handleClaimStamp() {
+      const shop=state.shops.find(s=>s.id===state.selectedShopId)||state.shops[0];
+      if(!shop||!state.currentCustomer)return showToast('Pehle mobile OTP verify karein.','warning');
+      if(!state.pendingQrToken)return showToast('Stamp ke liye counter par owner ka LIVE QR scan karein.','warning');
+      const {data,error}=await window.ApnaLoopLiveDB.client.rpc('claim_shop_stamp',{p_shop_id:shop.id,p_qr_token:state.pendingQrToken,p_idempotency_key:crypto.randomUUID()});
+      if(error){const msg=error.message||'Stamp verify nahi ho paya.';if(msg.includes('STAMP_ALREADY_CLAIMED_TODAY'))return showToast('Aaj is shop se stamp mil chuka hai.','warning');if(msg.includes('QR_SESSION_EXPIRED_OR_INVALID'))return showToast('QR expire ho gaya. Owner se naya LIVE QR scan karein.','warning');return showToast(msg,'error');}
+      state.pendingQrToken=null;const params=new URLSearchParams(window.location.search);params.delete('qr');params.delete('shop');window.history.replaceState({},'',window.location.pathname+(params.toString()?'?'+params.toString():''));
+      await refreshCustomerCard(shop.id);
+      state.lastScanSuccess={shopId:shop.id,shopName:shop.name,count:data.stamp_count,rewardText:shop.reward_text,timestamp:new Date(data.created_at||Date.now()).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})};
+      state.currentView='scan-success';renderCurrentView();showToast(data.reward_unlocked?'10 stamps complete! Reward unlock ho gayi 🎉':'Stamp successfully add ho gaya!');
+    }
+
     function getCustomerActiveStamps(shopId, customerId) {
       return state.stamps.filter(
         (s) => s.shop_id === shopId && s.customer_id === customerId && s.status === 'active'
@@ -635,6 +687,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     }
 
     function cancelStampById(stampId) {
+      showToast('Stamp reversal audit-safe server workflow ke baad enable hoga.','warning'); return;
       const stamp = state.stamps.find((s) => s.id === stampId);
       if (!stamp || stamp.status === 'cancelled') {
         showToast('Yeh stamp pehle hi cancel ho chuka hai.', 'warning');
@@ -724,6 +777,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
           break;
         case 'dashboard':
           root.innerHTML = renderOwnerDashboardView();
+          mountLiveShopQR();
           break;
         case 'redeem':
           root.innerHTML = renderRedeemView();
@@ -967,7 +1021,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
                   <form onsubmit="handleVerifyCustomerOtp(event)" class="mt-4 space-y-3.5">
                     <div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">
                       <p class="font-bold">OTP bheja gaya: +91 ${pending.phone}</p>
-                      <p class="mt-1">SMS Verification Code: <strong class="text-base font-extrabold tracking-widest tabular-nums bg-white px-2 py-0.5 rounded-lg border border-emerald-300">${pending.code}</strong></p>
+                      <p class="mt-1">SMS mein aaya OTP enter karein. OTP app mein display nahi hoga.</p>
                     </div>
                     <div>
                       <label class="block text-xs font-bold text-neutral-700 mb-1">4-Digit OTP Daalein</label>
@@ -1016,12 +1070,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
                 <span class="text-[10px] font-bold text-neutral-500 mt-2">Owner Scan / Code Verification</span>
               </div>
 
-              <div class="pt-1 flex flex-col gap-2">
-                <button onclick="openRedeemWithPrefill('${unlockedReward.code}')" class="w-full py-3.5 rounded-2xl bg-[#1A1A1A] hover:bg-neutral-800 text-white font-extrabold text-xs flex items-center justify-center gap-2">
-                  <i data-lucide="check-circle-2" class="w-4 h-4 text-amber-400"></i>
-                  <span>Owner Redeem Screen Kholein (${unlockedReward.code})</span>
-                </button>
-              </div>
+              <div class="pt-1"><p class="text-xs text-amber-900 font-semibold">Counter par dukaandar apne dashboard mein yeh code enter karke reward redeem karega.</p></div>
             </div>
           </div>
         `;
@@ -1117,7 +1166,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
                   <span>${stampedToday ? 'Aaj Ka Stamp Mil Chuka Hai ✓' : t('claim_stamp_btn')}</span>
                 </button>
                 <p class="text-[11px] text-neutral-400 text-center mt-2">
-                  🔒 Protected by 1-Stamp/Day Rule, QR Session Token & 200m Geofence
+                  🔒 Short-lived QR token • Server-verified one stamp per India day
                 </p>
               </div>
             </div>
@@ -1165,7 +1214,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       const failed = writes.find(x => x.error);
       if (failed) return showToast(`Profile save nahi hua: ${failed.error.message}`, 'error');
       state.currentCustomer = { id: user.id, name: pending.name, phone: pending.phone, verified_at: new Date().toISOString() };
-      state.pendingOtp = null; saveState(); renderCurrentView();
+      state.pendingOtp = null; saveState();
+      if (state.pendingQrToken) await handleClaimStamp();
+      else { if(state.selectedShopId) await refreshCustomerCard(state.selectedShopId); renderCurrentView(); }
       showToast(`Swagat hai ${state.currentCustomer.name}! Mobile verify ho gaya.`);
     }
 
@@ -1313,7 +1364,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
               </div>
 
               <p class="text-xs text-neutral-600 font-semibold">
-                📱 Phone camera se scan karein • Bina app download ke stamp paayein
+                📱 Is QR se shop ka loyalty page kholein. Stamp lene ke liye owner dashboard ka LIVE QR scan karein.
               </p>
             </div>
 
@@ -1333,12 +1384,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     }
 
     function mountOnboardingStandeeQR() {
-      const shop = newlyCreatedShopId
-        ? state.shops.find((s) => s.id === newlyCreatedShopId)
-        : state.shops[0];
-      if (shop) {
-        mountQRCode('onboarding-standee-qr', `https://apnaloop.in/s/${shop.id}`, 155);
-      }
+      const shop = newlyCreatedShopId ? state.shops.find(s=>s.id===newlyCreatedShopId) : state.shops.find(s=>s.id===state.ownerShopId);
+      if(shop){const url=new URL(window.location.origin+'/');url.searchParams.set('shop',shop.id);mountQRCode('onboarding-standee-qr',url.toString(),155);}
     }
 
     async function handleCreateShop(e) {
@@ -1377,16 +1424,13 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       const activeStamps = shopStamps.filter((s) => s.status === 'active');
 
       // KPI 1: Aaj ke stamps
+      const liveStats = state.dashboardStats?.shopId === shop.id ? state.dashboardStats : null;
       const todayIso = new Date().toISOString();
-      const todayStampsCount = activeStamps.filter((s) => isSameDay(s.created_at, todayIso)).length;
-
-      // KPI 2: Is hafte wapas aaye (customers with >=2 stamps or active this week)
+      const todayStampsCount = liveStats?.today_stamps ?? activeStamps.filter((s) => isSameDay(s.created_at, todayIso)).length;
       const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
       const weekStamps = activeStamps.filter((s) => new Date(s.created_at).getTime() >= weekAgo);
-      const repeatCustomersThisWeek = new Set(weekStamps.map((s) => s.customer_id)).size;
-
-      // KPI 3: Total unique customers
-      const totalCustomersCount = new Set(shopStamps.map((s) => s.customer_id)).size;
+      const repeatCustomersThisWeek = liveStats?.repeat_customers ?? new Set(weekStamps.map((s) => s.customer_id)).size;
+      const totalCustomersCount = liveStats?.total_customers ?? new Set(shopStamps.map((s) => s.customer_id)).size;
 
       const recentActivity = shopStamps.slice(0, 12);
 
@@ -1397,7 +1441,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
             <div>
               <div class="flex items-center gap-2">
                 <span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#0F9D58] text-xs font-extrabold">${shop.subscription_status}</span>
-                <span class="text-xs text-neutral-400 tabular-nums">+91 ${shop.phone}</span>
+                <span class="text-xs text-neutral-400 tabular-nums">${shop.city || ''}</span>
               </div>
               <h2 class="text-xl font-extrabold text-[#1A1A1A] mt-1">${shop.name} — Owner Dashboard</h2>
             </div>
@@ -1412,6 +1456,11 @@ CREATE TABLE IF NOT EXISTS subscriptions (
                 Redeem Code
               </button>
             </div>
+          </div>
+
+          <div class="bg-white rounded-3xl p-5 border border-black/5 shadow-xs flex flex-col sm:flex-row items-center gap-4">
+            <div class="text-center sm:text-left flex-1"><h3 class="font-extrabold text-base text-[#1A1A1A]">Counter ka LIVE QR</h3><p class="text-xs text-neutral-500 mt-1">Customer apne phone camera se scan kare. QR short-lived hai aur stamp server par verify hota hai.</p><p id="owner-live-shop-qr-status" class="text-xs font-bold text-[#0F9D58] mt-2">Secure QR generate ho raha hai…</p><button onclick="refreshLiveShopQR()" class="mt-3 px-4 py-2 rounded-xl bg-[#0F9D58] text-white text-xs font-extrabold">Refresh Live QR</button></div>
+            <div id="owner-live-shop-qr" class="bg-white rounded-2xl border border-neutral-100 p-2 min-w-[206px] min-h-[206px] flex items-center justify-center"></div>
           </div>
 
           <!-- 3 Large KPI Cards -->
@@ -1511,9 +1560,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     }
 
     function switchOwnerShop(shopId) {
-      state.ownerShopId = shopId;
-      saveState();
-      renderCurrentView();
+      state.ownerShopId = shopId; state.dashboardStats=null; saveState(); renderCurrentView();
+      refreshShopDashboard(shopId).then(renderCurrentView).catch(e=>showToast(e.message,'error')); mountLiveShopQR();
     }
 
     // -------------------------------------------------------------------------
@@ -1527,11 +1575,6 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     }
 
     function renderRedeemView() {
-      const matchedReward =
-        redeemCodeBuffer.length === 6
-          ? state.rewards.find((r) => r.code === redeemCodeBuffer)
-          : null;
-
       const digits = Array.from({ length: 6 }, (_, i) => redeemCodeBuffer[i] || '');
 
       return `
@@ -1558,38 +1601,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
                 .join('')}
             </div>
 
-            <!-- Validation Result Card -->
-            ${
-              redeemCodeBuffer.length === 6
-                ? matchedReward
-                  ? matchedReward.status === 'unlocked'
-                    ? `
-                    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 space-y-3">
-                      <div class="flex items-center justify-between">
-                        <span class="px-2.5 py-0.5 rounded-full bg-[#0F9D58] text-white text-[10px] font-extrabold">VALID REWARD</span>
-                        <span class="text-xs font-bold text-neutral-600">${matchedReward.shop_name}</span>
-                      </div>
-                      <div>
-                        <p class="text-sm font-extrabold text-[#1A1A1A]">${matchedReward.customer_name} (+91 ${matchedReward.customer_phone})</p>
-                        <p class="text-base font-extrabold text-[#0F9D58] mt-0.5">🎁 ${matchedReward.reward_text}</p>
-                      </div>
-                      <button onclick="confirmGiveReward('${matchedReward.id}')" class="w-full py-3.5 rounded-2xl bg-[#0F9D58] hover:bg-[#0c8248] text-white font-extrabold text-sm shadow-md">
-                        [ ${t('redeem_btn')} ] ✓
-                      </button>
-                    </div>
-                  `
-                    : `
-                    <div class="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-center text-xs font-bold text-amber-900">
-                      Yeh code pehle hi "${matchedReward.status}" ho chuka hai.
-                    </div>
-                  `
-                  : `
-                  <div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-center text-xs font-bold text-red-700">
-                    ❌ Code ${redeemCodeBuffer} nahi mila. Kripya sahi 6-digit code check karein.
-                  </div>
-                `
-                : ''
-            }
+            <!-- Server-side reward validation result -->
+            ${redeemResult ? (redeemResult.ok ? `<div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-center space-y-2"><span class="px-2.5 py-1 rounded-full bg-[#0F9D58] text-white text-[10px] font-extrabold">REDEEMED</span><p class="font-extrabold text-[#0F9D58]">${redeemResult.reward_title || 'Reward'} successfully redeemed!</p><p class="text-xs text-neutral-600">Customer ki loyalty card reset ho gayi hai.</p></div>` : `<div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-center text-xs font-bold text-red-700">${redeemResult.message || 'Code verify nahi hua.'}</div>`) : (redeemCodeBuffer.length === 6 ? `<button onclick="confirmGiveReward()" class="w-full py-3.5 rounded-2xl bg-[#0F9D58] text-white font-extrabold text-sm">Verify & Redeem Reward</button>` : `<p class="text-xs text-neutral-500 text-center">Customer ka 6-digit reward code enter karein.</p>`)}
 
             <!-- Large Tactile Numeric Keypad -->
             <div class="grid grid-cols-3 gap-2.5 pt-1">
@@ -1617,25 +1630,18 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       `;
     }
 
-    function pressRedeemDigit(d) {
-      if (redeemCodeBuffer.length < 6) {
-        redeemCodeBuffer += d;
-        renderCurrentView();
-      }
-    }
-
-    function backspaceRedeemDigit() {
-      redeemCodeBuffer = redeemCodeBuffer.slice(0, -1);
-      renderCurrentView();
-    }
-
-    function clearRedeemDigits() {
-      redeemCodeBuffer = '';
-      renderCurrentView();
-    }
-
-    function confirmGiveReward() {
-      showToast('Reward redemption server-side verification ke baad enable hoga. Browser-only redemption disabled hai.', 'warning');
+    function pressRedeemDigit(d) { if (redeemCodeBuffer.length < 6) { redeemCodeBuffer += d; redeemResult=null; renderCurrentView(); } }
+    function backspaceRedeemDigit() { redeemCodeBuffer=redeemCodeBuffer.slice(0,-1); redeemResult=null; renderCurrentView(); }
+    function clearRedeemDigits() { redeemCodeBuffer=''; redeemResult=null; renderCurrentView(); }
+    async function confirmGiveReward() {
+      const shop=state.shops.find(s=>s.id===state.ownerShopId);
+      if(!shop)return showToast('Pehle owner account se shop dashboard kholein.','warning');
+      if(redeemCodeBuffer.length!==6)return showToast('6-digit code enter karein.','warning');
+      const {data,error}=await window.ApnaLoopLiveDB.client.rpc('redeem_customer_reward',{p_shop_id:shop.id,p_code:redeemCodeBuffer});
+      if(error){redeemResult={ok:false,message:error.message};renderCurrentView();return showToast(error.message,'error');}
+      redeemResult=data;renderCurrentView();
+      if(data?.ok){await refreshShopDashboard(shop.id);showToast('Reward redeem ho gayi. Customer ka next 10-stamp cycle shuru!');}
+      else showToast(data?.message||'Code invalid hai.','warning');
     }
 
     function renderSuperAdminView() {
@@ -1656,7 +1662,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
               <h2 class="text-2xl font-extrabold mt-1">Super Admin Dashboard</h2>
             </div>
             <div class="text-xs text-neutral-300 bg-white/10 px-3.5 py-2 rounded-2xl">
-              RLS Security • Short-Lived QR Tokens • 200m Geofence Active
+              RLS Security • Short-Lived QR Tokens • One Stamp Per India Day
             </div>
           </div>
 
@@ -1793,6 +1799,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       status: 'connecting', modeLabel: 'Connecting to Supabase…', projectLabel: 'ApnaLoop Mumbai', client: null,
       async init() {
         try {
+          const params=new URLSearchParams(window.location.search); const scannedShop=params.get('shop'); const scannedToken=params.get('qr');
+          if(scannedToken&&scannedShop){state.selectedShopId=scannedShop;state.pendingQrToken=scannedToken;state.currentView='customer';}
           if (!window.supabase?.createClient) throw new Error('Supabase JS library load nahi hui.');
           this.client = window.supabase.createClient('https://aebdkkczseaytavprnjo.supabase.co',
             'sb_publishable_GYcxh0kfdI53XKw0bqQ1kg_XpP3KtWE',
@@ -1803,6 +1811,10 @@ CREATE TABLE IF NOT EXISTS subscriptions (
           this.status = 'connected'; this.modeLabel = 'Supabase Live Database'; this.lastSyncedAt = new Date().toISOString();
           await this.refreshShops();
           if (sessionData?.session?.user) await this.refreshCustomer(sessionData.session.user);
+          if(scannedShop&&state.shops.some(s=>s.id===scannedShop))state.selectedShopId=scannedShop;
+          if(state.pendingQrToken&&state.currentCustomer)await handleClaimStamp();
+          else if(state.currentView==='customer'&&state.currentCustomer&&state.selectedShopId){await refreshCustomerCard(state.selectedShopId);renderCurrentView();}
+          if(state.ownerShopId)await refreshShopDashboard(state.ownerShopId);
         } catch (error) {
           console.error('Supabase connection failed:', error);
           this.status = 'error'; this.modeLabel = 'Database connection issue'; this.lastError = error.message;
