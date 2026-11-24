@@ -1,0 +1,2724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ApnaLoop — QR Loyalty for Indian Small Shops</title>
+  <meta name="theme-color" content="#0F9D58" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="ApnaLoop" />
+
+  <!-- Google Fonts: Plus Jakarta Sans & Hind -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '"Hind"', 'sans-serif'],
+            hindi: ['"Hind"', 'sans-serif']
+          },
+          colors: {
+            brandGreen: '#0F9D58',
+            brandOrange: '#FF6B00',
+            brandCream: '#FFF8F0',
+            brandDark: '#1A1A1A'
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', 'Hind', sans-serif;
+      background-color: #FFF8F0;
+      color: #1A1A1A;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Stamp pop animation */
+    @keyframes stampPop {
+      0% { transform: scale(0.3) rotate(-25deg); opacity: 0; }
+      70% { transform: scale(1.15) rotate(6deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .animate-stamp-pop {
+      animation: stampPop 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Smooth view entrance */
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .view-enter {
+      animation: fadeSlideUp 0.28s ease-out forwards;
+    }
+
+    /* Gold shimmer for 10/10 Reward Unlocked */
+    .gold-card {
+      background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 45%, #FDE68A 100%);
+      border: 2px solid #F59E0B;
+    }
+
+    /* Print Standee Styling */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printable-standee-area,
+      #printable-standee-area * {
+        visibility: visible !important;
+      }
+      #printable-standee-area {
+        position: fixed !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 380px !important;
+        box-shadow: none !important;
+        border: 3px solid #1A1A1A !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col pb-24 lg:pb-10">
+
+  <!-- Sticky Top App Header -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-black/5 no-print">
+    <div class="max-w-5xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+      <!-- Brand Logo (Dark Blue & Gold ApnaLoop Mark) -->
+      <button onclick="navigateTo('home')" class="flex items-center gap-2.5 text-left group focus:outline-none">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#0F294A] to-[#1E3A8A] border border-[#D4AF37]/60 flex items-center justify-center text-[#F5C451] shadow-sm group-hover:scale-105 transition-transform">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.739-8-4.585 0-4.585 8 0 8 5.606 0 7.644-8 12.74-8z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-extrabold text-lg sm:text-xl tracking-tight text-[#0F294A]">Apna<span class="text-[#D4AF37]">Loop</span></span>
+            <span class="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-[#0F9D58]/10 text-[#0F9D58]">PWA</span>
+          </div>
+          <p class="text-[11px] text-neutral-500 -mt-0.5 hidden xs:block" data-i18n="tagline_short">QR Loyalty • Zero Jhanjhat</p>
+        </div>
+      </button>
+
+      <!-- Desktop Navigation Links -->
+      <nav class="hidden lg:flex items-center gap-1 bg-[#FFF8F0] p-1 rounded-2xl border border-black/5">
+        <button onclick="navigateTo('home')" data-nav="home" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_home">Home</button>
+        <button onclick="navigateTo('customer')" data-nav="customer" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_card">Stamp Card</button>
+        <button onclick="navigateTo('onboarding')" data-nav="onboarding" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_setup">Shop QR</button>
+        <button onclick="navigateTo('dashboard')" data-nav="dashboard" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_dashboard">Dashboard</button>
+        <button onclick="navigateTo('redeem')" data-nav="redeem" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all" data-i18n="nav_redeem">Redeem</button>
+      </nav>
+
+      <!-- Right Controls: Live DB Pill, Language Toggle, WhatsApp Alerts, Install PWA, Super Admin -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <!-- Live DB Status Pill -->
+        <button onclick="openLiveDbModal()" id="live-db-pill" title="Live Database Status & Custom Connection" class="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-xs font-extrabold text-[#0F9D58] flex items-center gap-1.5 transition-colors">
+          <span id="live-db-dot" class="w-2 h-2 rounded-full bg-[#0F9D58] animate-pulse"></span>
+          <span id="live-db-label" class="hidden md:inline">Live DB</span>
+        </button>
+
+        <!-- Hinglish / English Toggle -->
+        <button onclick="toggleLanguage()" id="lang-toggle-btn" title="Switch Language" class="px-2.5 py-1.5 rounded-xl bg-[#FFF8F0] hover:bg-orange-100/70 border border-black/10 text-xs font-bold text-[#1A1A1A] flex items-center gap-1.5 transition-colors">
+          <span class="w-2 h-2 rounded-full bg-[#FF6B00]"></span>
+          <span id="lang-label">Hinglish</span>
+        </button>
+
+        <!-- WhatsApp Alerts Feed Drawer Button -->
+        <button onclick="toggleWhatsAppDrawer()" title="Owner WhatsApp Alerts" class="relative p-2 rounded-xl bg-[#0F9D58]/10 hover:bg-[#0F9D58]/20 text-[#0F9D58] transition-colors">
+          <i data-lucide="message-circle" class="w-4 h-4"></i>
+          <span id="wa-badge" class="hidden absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#FF6B00] text-white text-[10px] font-extrabold flex items-center justify-center tabular-nums">0</span>
+        </button>
+
+        <!-- Install PWA Button -->
+        <button onclick="openPwaModal()" title="Install App on Phone" class="p-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition-colors">
+          <i data-lucide="smartphone" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Super Admin Link -->
+        <button onclick="navigateTo('admin')" data-nav="admin" class="nav-pill px-2.5 py-1.5 rounded-xl border border-black/10 text-xs font-bold text-neutral-700 hover:bg-neutral-100 flex items-center gap-1 transition-colors">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-[#0F9D58]"></i>
+          <span class="hidden sm:inline" data-i18n="nav_admin">Admin</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Toast Notification Banner -->
+  <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md pointer-events-none flex flex-col gap-2 no-print"></div>
+
+  <!-- Main Dynamic App Container -->
+  <main id="app-root" class="flex-1 w-full max-w-5xl mx-auto px-3 sm:px-6 pt-5 pb-8"></main>
+
+  <!-- Mobile Bottom Navigation Bar (App Ergonomics) -->
+  <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-black/10 px-2 py-1.5 no-print">
+    <div class="max-w-md mx-auto grid grid-cols-5 gap-1">
+      <button onclick="navigateTo('home')" data-nav="home" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="home" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_home">Home</span>
+      </button>
+      <button onclick="navigateTo('customer')" data-nav="customer" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="stamp" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_card">Card</span>
+      </button>
+      <button onclick="navigateTo('onboarding')" data-nav="onboarding" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="qr-code" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_setup">Shop QR</span>
+      </button>
+      <button onclick="navigateTo('dashboard')" data-nav="dashboard" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="bar-chart-3" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_dashboard">Owner</span>
+      </button>
+      <button onclick="navigateTo('redeem')" data-nav="redeem" class="mobile-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[11px] font-bold transition-all">
+        <i data-lucide="gift" class="w-4 h-4 mb-0.5"></i>
+        <span data-i18n="nav_redeem">Redeem</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- WhatsApp Cloud API Live Alerts Drawer -->
+  <div id="wa-drawer-backdrop" onclick="toggleWhatsAppDrawer()" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs hidden no-print"></div>
+  <aside id="wa-drawer" class="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-[#ECE5DD] shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col no-print">
+    <!-- WhatsApp Header -->
+    <div class="bg-[#075E54] text-white px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center font-extrabold text-sm">AL</div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h3 class="font-bold text-sm">ApnaLoop WhatsApp Bot</h3>
+            <span class="w-2 h-2 rounded-full bg-[#25D366]"></span>
+          </div>
+          <p class="text-[11px] text-emerald-100">Owner Instant Alerts & Sunday Digest</p>
+        </div>
+      </div>
+      <button onclick="toggleWhatsAppDrawer()" class="p-2 rounded-full hover:bg-white/10">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Messages Feed -->
+    <div id="wa-messages-list" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+
+    <!-- Sunday 9:00 AM Weekly Digest Action -->
+    <div class="p-3 bg-white border-t border-black/10 flex items-center justify-between gap-2">
+      <div class="text-xs text-neutral-600">
+        <span class="font-bold text-[#1A1A1A]">Sunday 9:00 AM Digest</span>
+        <p class="text-[11px]">Weekly summary alert to owner</p>
+      </div>
+      <button onclick="sendWeeklySundayDigest()" class="px-3 py-2 rounded-xl bg-[#0F9D58] hover:bg-[#0c8248] text-white text-xs font-bold flex items-center gap-1.5 shrink-0">
+        <i data-lucide="send" class="w-3.5 h-3.5"></i>
+        <span>Send Digest</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Install App (PWA) Modal -->
+  <div id="pwa-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/50 backdrop-blur-xs no-print">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 relative view-enter">
+      <button onclick="closePwaModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600">✕</button>
+      <div class="w-12 h-12 rounded-2xl bg-[#0F9D58]/10 text-[#0F9D58] flex items-center justify-center mb-4">
+        <i data-lucide="smartphone" class="w-6 h-6"></i>
+      </div>
+      <h3 class="text-lg font-extrabold text-[#1A1A1A]">ApnaLoop App Install Karein</h3>
+      <p class="text-sm text-neutral-600 mt-1">Bina Play Store ke seedha apne phone ki Home Screen par app jaisa icon lagayein:</p>
+      <div class="mt-4 space-y-2.5 text-xs">
+        <div class="p-3 rounded-2xl bg-[#FFF8F0] border border-orange-200/60">
+          <p class="font-bold text-[#1A1A1A]">Android (Chrome):</p>
+          <p class="text-neutral-600 mt-0.5">Upar right mein <strong>⋮ (3 dots)</strong> dabayein → <strong>"Add to Home screen"</strong> ya <strong>"Install app"</strong> chunein.</p>
+        </div>
+        <div class="p-3 rounded-2xl bg-[#FFF8F0] border border-orange-200/60">
+          <p class="font-bold text-[#1A1A1A]">iPhone (Safari):</p>
+          <p class="text-neutral-600 mt-0.5">Neeche <strong>Share (↑)</strong> icon dabayein → <strong>"Add to Home Screen"</strong> par tap karein.</p>
+        </div>
+      </div>
+      <button onclick="closePwaModal()" class="mt-5 w-full py-3 rounded-2xl bg-[#1A1A1A] text-white font-bold text-sm">Samajh Gaya</button>
+    </div>
+  </div>
+
+  <!-- Live Database Status, Custom Firebase/Supabase Config & SQL Schema Modal -->
+  <div id="live-db-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-black/55 backdrop-blur-xs overflow-y-auto no-print">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-black/10 relative my-auto view-enter max-h-[90vh] overflow-y-auto">
+      <div class="flex items-start justify-between gap-3 pb-4 border-b border-neutral-100">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-[#0F294A] text-[#F5C451] flex items-center justify-center shrink-0">
+            <i data-lucide="database" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-extrabold text-base sm:text-lg text-[#1A1A1A]">Live Database & Backend Schema</h3>
+              <span id="db-modal-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-[#0F9D58]">ACTIVE</span>
+            </div>
+            <p id="db-modal-subtitle" class="text-xs text-neutral-500 mt-0.5"></p>
+          </div>
+        </div>
+        <button onclick="closeLiveDbModal()" class="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 shrink-0">✕</button>
+      </div>
+
+      <!-- Provider Selector Tabs -->
+      <div class="grid grid-cols-3 gap-2 my-4 bg-[#FFF8F0] p-1 rounded-2xl border border-black/5 text-xs font-extrabold">
+        <button onclick="switchDbPanelTab('firebase')" id="db-tab-firebase" class="py-2 rounded-xl bg-[#0F294A] text-white transition-all">Firebase Live</button>
+        <button onclick="switchDbPanelTab('supabase')" id="db-tab-supabase" class="py-2 rounded-xl text-neutral-700 hover:bg-white transition-all">Supabase Config</button>
+        <button onclick="switchDbPanelTab('schema')" id="db-tab-schema" class="py-2 rounded-xl text-neutral-700 hover:bg-white transition-all">SQL & Firestore Rules</button>
+      </div>
+
+      <!-- Tab 1: Firebase Config -->
+      <div id="db-panel-firebase" class="space-y-3">
+        <p class="text-xs text-neutral-600 leading-relaxed">
+          Apna khud ka Firebase project connect karein taaki <strong>shops, stamps, rewards, whatsappMessages</strong> aur <strong>auditLogs</strong> real-time <code class="bg-neutral-100 px-1 rounded">onSnapshot</code> ke saath sync hon. Bina custom config ke bhi local persistent cache automatically kaam karta hai.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Firebase API Key</label>
+            <input id="fb-api-key" type="text" placeholder="AIzaSy..." class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Project ID</label>
+            <input id="fb-project-id" type="text" placeholder="apnaloop-prod" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Auth Domain (Optional)</label>
+            <input id="fb-auth-domain" type="text" placeholder="apnaloop-prod.firebaseapp.com" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">App ID (Optional)</label>
+            <input id="fb-app-id" type="text" placeholder="1:123456:web:abcdef" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
+          <button onclick="resetCustomDbConfig()" class="px-3.5 py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-extrabold">
+            Reset to Default / Local Cache
+          </button>
+          <button onclick="applyFirebaseConfigFromModal()" class="px-5 py-2.5 rounded-xl bg-[#0F9D58] hover:bg-[#0B7A44] text-white text-xs font-extrabold shadow-sm">
+            Connect & Sync Live DB
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Supabase URL & Anon Key Config -->
+      <div id="db-panel-supabase" class="space-y-3 hidden">
+        <p class="text-xs text-neutral-600 leading-relaxed">
+          Agar aap production backend ke liye <strong>Supabase PostgreSQL</strong> use kar rahe hain, to yahan apna Supabase Project URL aur Anon Key save karein aur neeche SQL tab se schema run karein.
+        </p>
+        <div>
+          <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Supabase Project URL</label>
+          <input id="sb-url-input" type="url" placeholder="https://xyzcompany.supabase.co" class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-extrabold text-neutral-700 mb-1">Supabase Anon Public Key</label>
+          <input id="sb-anon-input" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." class="w-full px-3 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono focus:border-[#0F9D58] focus:outline-none" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="applySupabaseConfigFromModal()" class="px-5 py-2.5 rounded-xl bg-[#0F294A] hover:bg-blue-950 text-white text-xs font-extrabold shadow-sm">
+            Save Supabase Endpoint
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 3: Copyable SQL Schema & Firestore Structure -->
+      <div id="db-panel-schema" class="space-y-3 hidden">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-extrabold text-[#1A1A1A]">Supabase PostgreSQL Schema (shops, customers, stamps, rewards, subscriptions)</span>
+          <button onclick="copySqlSchema()" class="px-3 py-1.5 rounded-xl bg-[#0F9D58] text-white text-xs font-extrabold flex items-center gap-1.5">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Copy SQL</span>
+          </button>
+        </div>
+        <pre id="sql-schema-code" class="p-3.5 rounded-2xl bg-[#1A1A1A] text-emerald-300 text-[11px] font-mono overflow-x-auto leading-relaxed max-h-60">CREATE TABLE IF NOT EXISTS shops (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  category TEXT NOT NULL,
+  reward_text TEXT NOT NULL,
+  lat DOUBLE PRECISION,
+  lng DOUBLE PRECISION,
+  subscription_status TEXT NOT NULL DEFAULT 'Trial',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS customers (
+  id TEXT PRIMARY KEY,
+  phone TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS stamps (
+  id TEXT PRIMARY KEY,
+  shop_id TEXT NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  customer_id TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  customer_phone TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS rewards (
+  id TEXT PRIMARY KEY,
+  shop_id TEXT NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  customer_id TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  customer_phone TEXT NOT NULL,
+  reward_text TEXT NOT NULL,
+  code TEXT UNIQUE NOT NULL,
+  status TEXT NOT NULL DEFAULT 'unlocked',
+  redeemed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id TEXT PRIMARY KEY,
+  shop_id TEXT NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  razorpay_order_id TEXT,
+  status TEXT NOT NULL DEFAULT 'trialing',
+  current_period_end TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);</pre>
+        <p class="text-[11px] text-neutral-500">
+          Firestore collections active under <code class="font-mono">/artifacts/{appId}/public/data/{collection}</code>: <span class="font-mono font-bold text-neutral-700">shops, stamps, rewards, whatsappMessages, auditLogs</span>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. TRANSLATIONS (HINGLISH DEFAULT + LIVE ENGLISH TOGGLE)
+    // =========================================================================
+    const I18N = {
+      hinglish: {
+        tagline_short: 'QR Loyalty • Zero Jhanjhat',
+        nav_home: 'Home',
+        nav_card: 'Stamp Card',
+        nav_setup: 'Shop QR',
+        nav_dashboard: 'Dashboard',
+        nav_redeem: 'Redeem',
+        nav_admin: 'Admin',
+        hero_badge: 'Bina App Download • 100% Indian Dukaano Ke Liye',
+        hero_title: 'Apni dukaan ka apna loyalty card',
+        hero_sub: 'Customer counter par QR scan kare, stamp paaye, aur 10th visit par free reward jeete. Dukaandar ka daily kaam = ZERO.',
+        cta_setup_shop: 'Apni Dukaan Jodein (2 Min)',
+        cta_open_card: 'Customer Card Kholein',
+        how_title: 'Kaise Kaam Karta Hai?',
+        how_cust_title: 'Customer Ke Liye (10 Seconds)',
+        how_owner_title: 'Dukaandar Ke Liye (Zero Kaam)',
+        pricing_title: 'Seedha aur Sasta Plan',
+        pricing_free: 'Pehle 30 Din FREE',
+        pricing_paid: 'Uske baad ₹149/month',
+        pricing_per_day: '₹5 / din se bhi kam',
+        claim_stamp_btn: 'Aaj Ka Stamp Claim Karein',
+        verify_otp_title: 'Pehli Baar Login (OTP Verification)',
+        setup_title: '2-Minute Shop Setup',
+        setup_sub: 'Sirf 3 details bharein aur apna QR Standee turant print karein.',
+        dash_today: 'Aaj ke stamps',
+        dash_repeat: 'Is hafte wapas aaye',
+        dash_total: 'Total customers',
+        redeem_title: '6-Digit Reward Code Verify Karein',
+        redeem_btn: 'Reward Dedo'
+      },
+      english: {
+        tagline_short: 'QR Loyalty • Zero Effort',
+        nav_home: 'Home',
+        nav_card: 'Stamp Card',
+        nav_setup: 'Shop QR',
+        nav_dashboard: 'Dashboard',
+        nav_redeem: 'Redeem',
+        nav_admin: 'Admin',
+        hero_badge: 'No App Download • Built for Indian Local Shops',
+        hero_title: 'Your shop’s own digital loyalty card',
+        hero_sub: 'Customers scan your counter QR, collect stamps, and unlock a free reward on their 10th visit. Daily owner effort = ZERO.',
+        cta_setup_shop: 'Register Your Shop (2 Min)',
+        cta_open_card: 'Open Customer Card',
+        how_title: 'How It Works',
+        how_cust_title: 'For Customers (10 Seconds)',
+        how_owner_title: 'For Shop Owners (Zero Effort)',
+        pricing_title: 'Simple, Transparent Pricing',
+        pricing_free: 'First 30 Days FREE',
+        pricing_paid: 'Then ₹149/month',
+        pricing_per_day: 'Less than ₹5 / day',
+        claim_stamp_btn: "Claim Today's Stamp",
+        verify_otp_title: 'First-Time Login (OTP Verification)',
+        setup_title: '2-Minute Shop Setup',
+        setup_sub: 'Enter just 3 details to generate and print your counter QR standee.',
+        dash_today: "Today's stamps",
+        dash_repeat: 'Returned this week',
+        dash_total: 'Total customers',
+        redeem_title: 'Verify 6-Digit Reward Code',
+        redeem_btn: 'Give Reward'
+      }
+    };
+
+    // =========================================================================
+    // 2. CATEGORY PRESETS & PERSISTENT DATABASE (LOCALSTORAGE + LIVE SYNC)
+    // =========================================================================
+    const CATEGORY_META = {
+      Chai: { emoji: '☕', defaultReward: '1 Masala Chai + Bun Maska FREE', color: 'bg-amber-100 text-amber-800' },
+      Salon: { emoji: '✂️', defaultReward: '1 Haircut ya Head Massage FREE', color: 'bg-purple-100 text-purple-800' },
+      Bakery: { emoji: '🥐', defaultReward: '1 Veg Puff ya Pastry Box FREE', color: 'bg-orange-100 text-orange-800' },
+      Juice: { emoji: '🥤', defaultReward: '1 Fresh Sugarcane / Mango Juice FREE', color: 'bg-emerald-100 text-emerald-800' },
+      'Car Wash': { emoji: '🚗', defaultReward: '1 Full Foam Wash FREE', color: 'bg-blue-100 text-blue-800' },
+      Other: { emoji: '🏪', defaultReward: '₹100 Ka Instant Discount FREE', color: 'bg-neutral-100 text-neutral-800' }
+    };
+
+    const STORAGE_KEY = 'apnaloop_production_db_v1';
+
+    function createInitialState() {
+      const now = Date.now();
+      const dayMs = 24 * 60 * 60 * 1000;
+
+      const shops = [
+        {
+          id: 'sharma-chai',
+          name: 'Sharma Ji Ki Chai',
+          phone: '9876543210',
+          category: 'Chai',
+          reward_text: '1 Masala Chai + Bun Maska FREE',
+          lat: null,
+          lng: null,
+          subscription_status: 'Active ₹149',
+          created_at: new Date(now - 18 * dayMs).toISOString()
+        },
+        {
+          id: 'royal-cuts',
+          name: 'Royal Cuts Men Salon',
+          phone: '9820112233',
+          category: 'Salon',
+          reward_text: '1 Haircut ya Beard Styling FREE',
+          lat: null,
+          lng: null,
+          subscription_status: 'Trial',
+          created_at: new Date(now - 9 * dayMs).toISOString()
+        },
+        {
+          id: 'bombay-bakery',
+          name: 'Bombay Fresh Bakery',
+          phone: '9811223344',
+          category: 'Bakery',
+          reward_text: '1 Chocolate Pastry + Puff FREE',
+          lat: null,
+          lng: null,
+          subscription_status: 'Active ₹149',
+          created_at: new Date(now - 25 * dayMs).toISOString()
+        }
+      ];
+
+      // Seed realistic historical stamps so Dashboard & Admin show live metrics out-of-the-box
+      const stamps = [
+        { id: 'st-101', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 6 * dayMs).toISOString() },
+        { id: 'st-102', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 5 * dayMs).toISOString() },
+        { id: 'st-103', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 4 * dayMs).toISOString() },
+        { id: 'st-104', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 3 * dayMs).toISOString() },
+        { id: 'st-105', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 2 * dayMs).toISOString() },
+        { id: 'st-106', shop_id: 'sharma-chai', customer_id: 'cust-rohan', customer_name: 'Rohan Verma', customer_phone: '9123456780', status: 'active', created_at: new Date(now - 3600 * 1000 * 2).toISOString() },
+        { id: 'st-107', shop_id: 'sharma-chai', customer_id: 'cust-priya', customer_name: 'Priya Nair', customer_phone: '9988776655', status: 'active', created_at: new Date(now - 3 * dayMs).toISOString() },
+        { id: 'st-108', shop_id: 'sharma-chai', customer_id: 'cust-priya', customer_name: 'Priya Nair', customer_phone: '9988776655', status: 'active', created_at: new Date(now - 3600 * 1000 * 5).toISOString() },
+        { id: 'st-109', shop_id: 'royal-cuts', customer_id: 'cust-amit', customer_name: 'Amit Kulkarni', customer_phone: '9765432109', status: 'active', created_at: new Date(now - 4 * dayMs).toISOString() },
+        { id: 'st-110', shop_id: 'royal-cuts', customer_id: 'cust-amit', customer_name: 'Amit Kulkarni', customer_phone: '9765432109', status: 'active', created_at: new Date(now - 3600 * 1000 * 4).toISOString() }
+      ];
+
+      const whatsappMessages = [
+        {
+          id: 'wa-1',
+          shop_id: 'sharma-chai',
+          stamp_id: 'st-106',
+          text: 'Rohan Verma ne stamp liya (6/10) - Sharma Ji Ki Chai',
+          timestamp: new Date(now - 3600 * 1000 * 2).toISOString(),
+          cancelled: false,
+          unread: false
+        },
+        {
+          id: 'wa-2',
+          shop_id: 'sharma-chai',
+          stamp_id: 'st-108',
+          text: 'Priya Nair ne stamp liya (2/10) - Sharma Ji Ki Chai',
+          timestamp: new Date(now - 3600 * 1000 * 5).toISOString(),
+          cancelled: false,
+          unread: false
+        }
+      ];
+
+      const auditLogs = [
+        { id: 'log-1', type: 'STAMP_ISSUED', shop_name: 'Sharma Ji Ki Chai', detail: 'Rohan Verma (+91 9123456780) collected stamp 6/10', timestamp: new Date(now - 3600 * 1000 * 2).toISOString() },
+        { id: 'log-2', type: 'STAMP_ISSUED', shop_name: 'Sharma Ji Ki Chai', detail: 'Priya Nair (+91 9988776655) collected stamp 2/10', timestamp: new Date(now - 3600 * 1000 * 5).toISOString() },
+        { id: 'log-3', type: 'SHOP_REGISTERED', shop_name: 'Royal Cuts Men Salon', detail: 'Owner +91 9820112233 started 30-day free trial', timestamp: new Date(now - 9 * dayMs).toISOString() }
+      ];
+
+      return {
+        lang: 'hinglish',
+        currentView: 'home',
+        selectedShopId: 'sharma-chai',
+        ownerShopId: 'sharma-chai',
+        currentCustomer: null,
+        pendingOtp: null,
+        lastScanSuccess: null,
+        shops,
+        stamps,
+        rewards: [],
+        whatsappMessages,
+        auditLogs,
+        fraudBlockedCount: 0
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return createInitialState();
+        const parsed = JSON.parse(raw);
+        return { ...createInitialState(), ...parsed };
+      } catch (e) {
+        return createInitialState();
+      }
+    }
+
+    let state = loadState();
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.warn('Storage error', e);
+      }
+      updateWhatsAppBadge();
+      updateLiveDbBadge();
+    }
+
+    // Real-time listener callback from Firebase onSnapshot
+    window.applyRemoteCollection = function (colName, items) {
+      if (!Array.isArray(items) || items.length === 0) return;
+
+      if (colName === 'shops') {
+        const mergedMap = new Map();
+        state.shops.forEach((s) => mergedMap.set(s.id, s));
+        items.forEach((remoteShop) => mergedMap.set(remoteShop.id, { ...mergedMap.get(remoteShop.id), ...remoteShop }));
+        state.shops = Array.from(mergedMap.values());
+      } else if (colName === 'stamps') {
+        const mergedMap = new Map();
+        state.stamps.forEach((s) => mergedMap.set(s.id, s));
+        items.forEach((remoteStamp) => mergedMap.set(remoteStamp.id, { ...mergedMap.get(remoteStamp.id), ...remoteStamp }));
+        state.stamps = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      } else if (colName === 'rewards') {
+        const mergedMap = new Map();
+        state.rewards.forEach((r) => mergedMap.set(r.id, r));
+        items.forEach((remoteReward) => mergedMap.set(remoteReward.id, { ...mergedMap.get(remoteReward.id), ...remoteReward }));
+        state.rewards = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      } else if (colName === 'whatsappMessages') {
+        const mergedMap = new Map();
+        state.whatsappMessages.forEach((m) => mergedMap.set(m.id, m));
+        items.forEach((remoteMsg) => mergedMap.set(remoteMsg.id, { ...mergedMap.get(remoteMsg.id), ...remoteMsg }));
+        state.whatsappMessages = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+      } else if (colName === 'auditLogs') {
+        const mergedMap = new Map();
+        state.auditLogs.forEach((l) => mergedMap.set(l.id, l));
+        items.forEach((remoteLog) => mergedMap.set(remoteLog.id, { ...mergedMap.get(remoteLog.id), ...remoteLog }));
+        state.auditLogs = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+      }
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {}
+      updateWhatsAppBadge();
+      updateLiveDbBadge();
+      renderCurrentView();
+    };
+
+    window.onLiveDbStateChange = function () {
+      updateLiveDbBadge();
+      renderCurrentView();
+    };
+
+    function updateLiveDbBadge() {
+      const dbBridge = window.ApnaLoopLiveDB;
+      const pill = document.getElementById('live-db-pill');
+      const dot = document.getElementById('live-db-dot');
+      const label = document.getElementById('live-db-label');
+      if (!pill || !dot || !label || !dbBridge) return;
+
+      if (dbBridge.status === 'connected') {
+        pill.className =
+          'px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-xs font-extrabold text-[#0F9D58] flex items-center gap-1.5 transition-colors';
+        dot.className = 'w-2 h-2 rounded-full bg-[#0F9D58] animate-pulse';
+        label.textContent = dbBridge.modeLabel;
+      } else {
+        pill.className =
+          'px-2.5 py-1.5 rounded-xl bg-[#FFF8F0] hover:bg-orange-100/70 border border-amber-300 text-xs font-extrabold text-amber-800 flex items-center gap-1.5 transition-colors';
+        dot.className = 'w-2 h-2 rounded-full bg-amber-500';
+        label.textContent = 'Local Live Store';
+      }
+    }
+
+    function openLiveDbModal() {
+      const dbBridge = window.ApnaLoopLiveDB;
+      const modal = document.getElementById('live-db-modal');
+      const badge = document.getElementById('db-modal-status-badge');
+      const sub = document.getElementById('db-modal-subtitle');
+
+      const saved = dbBridge ? dbBridge.getSavedCustomConfig() : null;
+      if (saved?.firebase) {
+        document.getElementById('fb-api-key').value = saved.firebase.apiKey || '';
+        document.getElementById('fb-project-id').value = saved.firebase.projectId || '';
+        document.getElementById('fb-auth-domain').value = saved.firebase.authDomain || '';
+        document.getElementById('fb-app-id').value = saved.firebase.appId || '';
+      }
+      if (saved?.supabase) {
+        document.getElementById('sb-url-input').value = saved.supabase.url || '';
+        document.getElementById('sb-anon-input').value = saved.supabase.anonKey || '';
+      }
+      if (dbBridge && dbBridge.status === 'connected') {
+        badge.textContent = 'LIVE CONNECTED';
+        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-[#0F9D58]';
+        sub.textContent = `${dbBridge.modeLabel} • ${dbBridge.projectLabel}`;
+      } else {
+        badge.textContent = 'PERSISTENT LOCAL CACHE';
+        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800';
+        sub.textContent = 'All data saved persistently in browser + ready for custom Firebase/Supabase plug-in';
+      }
+
+      switchDbPanelTab('firebase');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function closeLiveDbModal() {
+      const modal = document.getElementById('live-db-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function switchDbPanelTab(tabName) {
+      ['firebase', 'supabase', 'schema'].forEach((t) => {
+        const panel = document.getElementById(`db-panel-${t}`);
+        const btn = document.getElementById(`db-tab-${t}`);
+        if (panel) panel.classList.toggle('hidden', t !== tabName);
+        if (btn) {
+          btn.className =
+            t === tabName
+              ? 'py-2 rounded-xl bg-[#0F294A] text-white transition-all'
+              : 'py-2 rounded-xl text-neutral-700 hover:bg-white transition-all';
+        }
+      });
+      lucide.createIcons();
+    }
+
+    async function applyFirebaseConfigFromModal() {
+      const apiKey = document.getElementById('fb-api-key').value.trim();
+      const projectId = document.getElementById('fb-project-id').value.trim();
+      const authDomain = document.getElementById('fb-auth-domain').value.trim();
+      const appId = document.getElementById('fb-app-id').value.trim();
+
+      if (!apiKey || !projectId) {
+        showToast('Firebase API Key aur Project ID dono daalein.', 'error');
+        return;
+      }
+
+      window.ApnaLoopLiveDB.saveCustomConfig({
+        provider: 'firebase',
+        firebase: {
+          apiKey,
+          projectId,
+          authDomain: authDomain || `${projectId}.firebaseapp.com`,
+          appId: appId || ''
+        }
+      });
+
+      showToast('Connecting to Firebase Live Database...');
+      await window.ApnaLoopLiveDB.init();
+      await window.ApnaLoopLiveDB.seedInitialShopsIfEmpty(state.shops);
+      updateLiveDbBadge();
+      closeLiveDbModal();
+    }
+
+    function applySupabaseConfigFromModal() {
+      const url = document.getElementById('sb-url-input').value.trim();
+      const anonKey = document.getElementById('sb-anon-input').value.trim();
+      if (!url || !anonKey) {
+        showToast('Supabase URL aur Anon Key daalein.', 'error');
+        return;
+      }
+
+      window.ApnaLoopLiveDB.saveCustomConfig({
+        provider: 'supabase',
+        supabase: { url, anonKey }
+      });
+      window.ApnaLoopLiveDB.status = 'connected';
+      window.ApnaLoopLiveDB.modeLabel = 'Supabase Configured';
+      window.ApnaLoopLiveDB.projectLabel = url;
+      updateLiveDbBadge();
+      showToast('Supabase endpoint saved! SQL Schema tab se tables create karein.');
+      closeLiveDbModal();
+    }
+
+    async function resetCustomDbConfig() {
+      window.ApnaLoopLiveDB.clearCustomConfig();
+      await window.ApnaLoopLiveDB.init();
+      updateLiveDbBadge();
+      showToast('Reset to default live storage mode.');
+      closeLiveDbModal();
+    }
+
+    function copySqlSchema() {
+      const sqlEl = document.getElementById('sql-schema-code');
+      if (!sqlEl) return;
+      const text = sqlEl.innerText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast('SQL Schema clipboard mein copy ho gaya!'));
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('SQL Schema copy ho gaya!');
+      }
+    }
+
+    // =========================================================================
+    // 3. UTILITIES: TOASTS, HIERARCHY, GEOFENCE, SHORT-LIVED TOKEN
+    // =========================================================================
+    function t(key) {
+      return (I18N[state.lang] && I18N[state.lang][key]) || I18N.hinglish[key] || key;
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const colors = {
+        success: 'bg-[#1A1A1A] text-white border-emerald-500/40',
+        warning: 'bg-amber-900 text-amber-50 border-amber-400/50',
+        error: 'bg-red-700 text-white border-red-300/40'
+      };
+      el.className = `pointer-events-auto px-4 py-3 rounded-2xl shadow-xl border text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 view-enter ${colors[type] || colors.success}`;
+      el.innerHTML = `<span>${message}</span><button onclick="this.parentElement.remove()" class="opacity-70 hover:opacity-100">✕</button>`;
+      container.appendChild(el);
+      setTimeout(() => {
+        if (el.parentElement) el.remove();
+      }, 4200);
+    }
+
+    function fireConfetti(goldMode = false) {
+      if (typeof confetti !== 'function') return;
+      confetti({
+        particleCount: goldMode ? 90 : 55,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: goldMode ? ['#F59E0B', '#FBBF24', '#0F9D58', '#FFFFFF'] : ['#0F9D58', '#FF6B00', '#FBBF24']
+      });
+    }
+
+    function isSameDay(isoA, isoB) {
+      const a = new Date(isoA);
+      const b = new Date(isoB);
+      return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    }
+
+    function formatTimeAgo(iso) {
+      const diffSec = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+      if (diffSec < 60) return `${diffSec}s ago`;
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return `${diffMin}m ago`;
+      const diffHr = Math.floor(diffMin / 60);
+      if (diffHr < 24) return `${diffHr}h ago`;
+      return `${Math.floor(diffHr / 24)}d ago`;
+    }
+
+    // Haversine formula in meters (for 200m Geofence verification)
+    function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const toRad = (deg) => (deg * Math.PI) / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return Math.round(R * c);
+    }
+
+    // Short-lived signed QR session token (expires in 10 mins to prevent replay from static QR photos)
+    function issueShortLivedToken(shopId) {
+      const issuedAt = Date.now();
+      const raw = `${shopId}:${issuedAt}:APNALOOP_SIG`;
+      const token = btoa(raw).slice(0, 18);
+      sessionStorage.setItem(`apnaloop_qr_token_${shopId}`, JSON.stringify({ token, issuedAt }));
+      return token;
+    }
+
+    function verifyShortLivedToken(shopId) {
+      try {
+        const stored = JSON.parse(sessionStorage.getItem(`apnaloop_qr_token_${shopId}`) || 'null');
+        if (!stored) return issueShortLivedToken(shopId);
+        // Valid for 10 minutes
+        if (Date.now() - stored.issuedAt > 10 * 60 * 1000) {
+          return null;
+        }
+        return stored.token;
+      } catch (e) {
+        return issueShortLivedToken(shopId);
+      }
+    }
+
+    function generate6DigitCode() {
+      let code = '';
+      do {
+        code = Math.floor(100000 + Math.random() * 900000).toString();
+      } while (state.rewards.some((r) => r.code === code && r.status === 'unlocked'));
+      return code;
+    }
+
+    // =========================================================================
+    // 4. NAVIGATION & LANGUAGE TOGGLE
+    // =========================================================================
+    function toggleLanguage() {
+      state.lang = state.lang === 'hinglish' ? 'english' : 'hinglish';
+      saveState();
+      renderCurrentView();
+    }
+
+    function navigateTo(view, shopId = null) {
+      if (shopId) {
+        state.selectedShopId = shopId;
+        issueShortLivedToken(shopId);
+      }
+      state.currentView = view;
+      saveState();
+      renderCurrentView();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateNavHighlights() {
+      document.getElementById('lang-label').textContent = state.lang === 'hinglish' ? 'Hinglish' : 'English';
+
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute('data-i18n');
+        el.textContent = t(key);
+      });
+
+      const activeKey = state.currentView === 'scan-success' ? 'customer' : state.currentView;
+
+      document.querySelectorAll('.nav-pill').forEach((btn) => {
+        const isMatch = btn.getAttribute('data-nav') === activeKey;
+        if (isMatch) {
+          btn.classList.add('bg-[#0F9D58]', 'text-white', 'shadow-xs');
+          btn.classList.remove('text-neutral-700');
+        } else {
+          btn.classList.remove('bg-[#0F9D58]', 'text-white', 'shadow-xs');
+          btn.classList.add('text-neutral-700');
+        }
+      });
+
+      document.querySelectorAll('.mobile-nav-btn').forEach((btn) => {
+        const isMatch = btn.getAttribute('data-nav') === activeKey;
+        if (isMatch) {
+          btn.classList.add('bg-[#0F9D58]/10', 'text-[#0F9D58]');
+          btn.classList.remove('text-neutral-500');
+        } else {
+          btn.classList.remove('bg-[#0F9D58]/10', 'text-[#0F9D58]');
+          btn.classList.add('text-neutral-500');
+        }
+      });
+    }
+
+    // =========================================================================
+    // 5. WHATSAPP CLOUD API SERVICE LAYER & OWNER ALERTS DRAWER
+    // =========================================================================
+    function updateWhatsAppBadge() {
+      const unreadCount = state.whatsappMessages.filter((m) => m.unread).length;
+      const badge = document.getElementById('wa-badge');
+      if (unreadCount > 0) {
+        badge.textContent = unreadCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function toggleWhatsAppDrawer() {
+      const drawer = document.getElementById('wa-drawer');
+      const backdrop = document.getElementById('wa-drawer-backdrop');
+      const isOpen = !drawer.classList.contains('translate-x-full');
+
+      if (isOpen) {
+        drawer.classList.add('translate-x-full');
+        backdrop.classList.add('hidden');
+      } else {
+        state.whatsappMessages.forEach((m) => (m.unread = false));
+        saveState();
+        renderWhatsAppDrawer();
+        drawer.classList.remove('translate-x-full');
+        backdrop.classList.remove('hidden');
+      }
+    }
+
+    function renderWhatsAppDrawer() {
+      const list = document.getElementById('wa-messages-list');
+      if (!state.whatsappMessages.length) {
+        list.innerHTML = `<div class="text-center text-xs text-neutral-500 py-10">Abhi tak koi WhatsApp alert nahi aaya hai.</div>`;
+        return;
+      }
+
+      list.innerHTML = state.whatsappMessages
+        .map((msg) => {
+          const stamp = msg.stamp_id ? state.stamps.find((s) => s.id === msg.stamp_id) : null;
+          const canCancel = stamp && stamp.status === 'active' && !msg.cancelled;
+
+          return `
+            <div class="bg-white rounded-2xl p-3.5 shadow-xs border border-black/5 max-w-[92%]">
+              <p class="text-xs sm:text-sm text-[#1A1A1A] font-medium leading-relaxed">${msg.text}</p>
+              <div class="flex items-center justify-between mt-2 pt-2 border-t border-neutral-100">
+                <span class="text-[10px] text-neutral-400 tabular-nums">${formatTimeAgo(msg.timestamp)} • WhatsApp Cloud API</span>
+                ${
+                  msg.cancelled
+                    ? `<span class="text-[11px] font-bold text-red-600">❌ Stamp Cancelled</span>`
+                    : canCancel
+                    ? `<button onclick="cancelStampById('${msg.stamp_id}')" class="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-extrabold transition-colors">[ Galat hai, Cancel Karo ]</button>`
+                    : `<span class="text-[10px] font-bold text-[#0F9D58]">✓ Verified</span>`
+                }
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    function sendWhatsAppAlert(shop, customerName, count, stampId) {
+      const text = `${customerName} ne stamp liya (${count}/10) - ${shop.name}`;
+      const msg = {
+        id: 'wa-' + Date.now(),
+        shop_id: shop.id,
+        stamp_id: stampId,
+        text,
+        timestamp: new Date().toISOString(),
+        cancelled: false,
+        unread: true
+      };
+      state.whatsappMessages.unshift(msg);
+      if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('whatsappMessages', msg);
+    }
+
+    function sendWeeklySundayDigest() {
+      const shop = state.shops.find((s) => s.id === state.ownerShopId) || state.shops[0];
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const shopStamps = state.stamps.filter((s) => s.shop_id === shop.id && s.status === 'active');
+      const recentStamps = shopStamps.filter((s) => new Date(s.created_at).getTime() >= weekAgo);
+      const returningCount = new Set(recentStamps.map((s) => s.customer_id)).size;
+      const redeemedCount = state.rewards.filter((r) => r.shop_id === shop.id && r.status === 'redeemed').length;
+      const newCustomersCount = new Set(shopStamps.map((s) => s.customer_id)).size;
+
+      const digestText = `📊 Sunday 9:00 AM Digest (${shop.name}): Is hafte ${returningCount} customers wapas aaye, ${redeemedCount} ne reward liya. Aapke ${newCustomersCount} naye customers jude.`;
+
+      const digestMsg = {
+        id: 'wa-digest-' + Date.now(),
+        shop_id: shop.id,
+        stamp_id: null,
+        text: digestText,
+        timestamp: new Date().toISOString(),
+        cancelled: false,
+        unread: false
+      };
+      state.whatsappMessages.unshift(digestMsg);
+      if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('whatsappMessages', digestMsg);
+
+      logAudit('WEEKLY_DIGEST_SENT', shop.name, digestText);
+      saveState();
+      renderWhatsAppDrawer();
+      showToast('Sunday 9:00 AM Weekly Digest bhej diya gaya!');
+    }
+
+    function logAudit(type, shopName, detail) {
+      const entry = {
+        id: 'log-' + Date.now() + Math.random().toString(16).slice(2, 5),
+        type,
+        shop_name: shopName,
+        detail,
+        timestamp: new Date().toISOString()
+      };
+      state.auditLogs.unshift(entry);
+      if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('auditLogs', entry);
+    }
+
+    // =========================================================================
+    // 6. CORE STAMP, REWARD & CANCELLATION BUSINESS LOGIC
+    // =========================================================================
+    function getCustomerActiveStamps(shopId, customerId) {
+      return state.stamps.filter(
+        (s) => s.shop_id === shopId && s.customer_id === customerId && s.status === 'active'
+      );
+    }
+
+    function getCustomerUnlockedReward(shopId, customerId) {
+      return state.rewards.find(
+        (r) => r.shop_id === shopId && r.customer_id === customerId && r.status === 'unlocked'
+      );
+    }
+
+    function cancelStampById(stampId) {
+      const stamp = state.stamps.find((s) => s.id === stampId);
+      if (!stamp || stamp.status === 'cancelled') {
+        showToast('Yeh stamp pehle hi cancel ho chuka hai.', 'warning');
+        return;
+      }
+
+      stamp.status = 'cancelled';
+      stamp.cancelled_at = new Date().toISOString();
+      if (window.ApnaLoopLiveDB) {
+        window.ApnaLoopLiveDB.patchRecord('stamps', stamp.id, {
+          status: 'cancelled',
+          cancelled_at: stamp.cancelled_at
+        });
+      }
+
+      // If this stamp had unlocked a reward that hasn't been redeemed yet, revoke it
+      const activeStampsLeft = getCustomerActiveStamps(stamp.shop_id, stamp.customer_id).length;
+      if (activeStampsLeft < 10) {
+        const unlocked = getCustomerUnlockedReward(stamp.shop_id, stamp.customer_id);
+        if (unlocked) {
+          unlocked.status = 'cancelled';
+          if (window.ApnaLoopLiveDB) {
+            window.ApnaLoopLiveDB.patchRecord('rewards', unlocked.id, { status: 'cancelled' });
+          }
+        }
+      }
+
+      // Mark WhatsApp message cancelled & send confirmation message
+      const waMsg = state.whatsappMessages.find((m) => m.stamp_id === stampId);
+      if (waMsg) {
+        waMsg.cancelled = true;
+        if (window.ApnaLoopLiveDB) {
+          window.ApnaLoopLiveDB.patchRecord('whatsappMessages', waMsg.id, { cancelled: true });
+        }
+      }
+
+      const shop = state.shops.find((sh) => sh.id === stamp.shop_id);
+      const shopName = shop ? shop.name : 'Shop';
+
+      const cancelAlert = {
+        id: 'wa-cancel-' + Date.now(),
+        shop_id: stamp.shop_id,
+        stamp_id: null,
+        text: `❌ Stamp Cancelled: ${stamp.customer_name} ka stamp (${shopName}) owner dwara radd kiya gaya.`,
+        timestamp: new Date().toISOString(),
+        cancelled: false,
+        unread: true
+      };
+      state.whatsappMessages.unshift(cancelAlert);
+      if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('whatsappMessages', cancelAlert);
+
+      logAudit(
+        'STAMP_CANCELLED',
+        shopName,
+        `Owner cancelled stamp for ${stamp.customer_name} (+91 ${stamp.customer_phone})`
+      );
+
+      saveState();
+      showToast(`Stamp cancelled for ${stamp.customer_name}`, 'warning');
+      renderWhatsAppDrawer();
+      renderCurrentView();
+    }
+
+    async function handleClaimStamp() {
+      const shop = state.shops.find((s) => s.id === state.selectedShopId) || state.shops[0];
+      const customer = state.currentCustomer;
+
+      if (!customer) {
+        showToast('Pehle apna naam aur mobile number OTP se verify karein.', 'warning');
+        return;
+      }
+
+      // 1. Short-lived QR session token check
+      const token = verifyShortLivedToken(shop.id);
+      if (!token) {
+        state.fraudBlockedCount += 1;
+        logAudit('FRAUD_BLOCKED', shop.name, `Expired QR session token for ${customer.name}`);
+        saveState();
+        showToast('QR session expire ho gaya hai. Counter par QR dobara scan karein.', 'error');
+        return;
+      }
+
+      // 2. Check if customer already has an unredeemed 10/10 reward
+      const existingUnlocked = getCustomerUnlockedReward(shop.id, customer.id);
+      if (existingUnlocked) {
+        showToast('Aapka 10/10 reward pehle se unlocked hai! Counter par code dikhayein.', 'warning');
+        renderCurrentView();
+        return;
+      }
+
+      // 3. One Stamp Per Day Per Shop enforcement
+      const todayIso = new Date().toISOString();
+      const alreadyStampedToday = state.stamps.some(
+        (s) =>
+          s.shop_id === shop.id &&
+          s.customer_id === customer.id &&
+          s.status === 'active' &&
+          isSameDay(s.created_at, todayIso)
+      );
+
+      if (alreadyStampedToday) {
+        state.fraudBlockedCount += 1;
+        logAudit('DUPLICATE_DAILY_BLOCKED', shop.name, `${customer.name} attempted a second stamp today`);
+        saveState();
+        showToast('Aaj ka stamp pehle hi mil chuka hai! Kal phir aana 😊', 'warning');
+        return;
+      }
+
+      // 4. Server-Side 200m Geofence Check (uses browser geolocation if shop coordinates are set)
+      const btn = document.getElementById('claim-stamp-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="animate-pulse">Location & QR Verify Ho Raha Hai...</span>`;
+      }
+
+      const proceedWithStamp = (geoNote) => {
+        const newStamp = {
+          id: 'st-' + Date.now(),
+          shop_id: shop.id,
+          customer_id: customer.id,
+          customer_name: customer.name,
+          customer_phone: customer.phone,
+          status: 'active',
+          created_at: new Date().toISOString()
+        };
+        state.stamps.unshift(newStamp);
+        if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('stamps', newStamp);
+
+        const updatedCount = getCustomerActiveStamps(shop.id, customer.id).length;
+
+        // Send WhatsApp alert to shop owner
+        sendWhatsAppAlert(shop, customer.name, updatedCount, newStamp.id);
+        logAudit(
+          'STAMP_ISSUED',
+          shop.name,
+          `${customer.name} (+91 ${customer.phone}) collected stamp ${updatedCount}/10 • ${geoNote} • Token ${token}`
+        );
+
+        // Check if 10/10 Reward Unlocked!
+        if (updatedCount >= 10) {
+          const code = generate6DigitCode();
+          const newReward = {
+            id: 'rew-' + Date.now(),
+            shop_id: shop.id,
+            shop_name: shop.name,
+            customer_id: customer.id,
+            customer_name: customer.name,
+            customer_phone: customer.phone,
+            reward_text: shop.reward_text,
+            code,
+            status: 'unlocked',
+            created_at: new Date().toISOString(),
+            redeemed_at: null
+          };
+          state.rewards.unshift(newReward);
+          if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('rewards', newReward);
+
+          const rewAlert = {
+            id: 'wa-rew-' + Date.now(),
+            shop_id: shop.id,
+            stamp_id: null,
+            text: `🎉 REWARD UNLOCKED! ${customer.name} ne 10/10 stamps poore kiye (${shop.name}). Code: ${code}`,
+            timestamp: new Date().toISOString(),
+            cancelled: false,
+            unread: true
+          };
+          state.whatsappMessages.unshift(rewAlert);
+          if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('whatsappMessages', rewAlert);
+
+          logAudit(
+            'REWARD_UNLOCKED',
+            shop.name,
+            `${customer.name} unlocked "${shop.reward_text}" (Code: ${code})`
+          );
+
+          saveState();
+          state.currentView = 'customer';
+          renderCurrentView();
+          fireConfetti(true);
+          return;
+        }
+
+        state.lastScanSuccess = {
+          shopId: shop.id,
+          shopName: shop.name,
+          count: updatedCount,
+          rewardText: shop.reward_text,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          token
+        };
+        state.currentView = 'scan-success';
+        saveState();
+        renderCurrentView();
+        fireConfetti(false);
+      };
+
+      if (shop.lat && shop.lng && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const dist = haversineDistanceMeters(shop.lat, shop.lng, pos.coords.latitude, pos.coords.longitude);
+            if (dist > 200) {
+              state.fraudBlockedCount += 1;
+              logAudit('GEOFENCE_BLOCKED', shop.name, `${customer.name} was ${dist}m away (>200m limit)`);
+              saveState();
+              showToast(`Aap dukaan se ${dist}m door hain. Stamp ke liye dukaan ke 200m andar rahein.`, 'error');
+              renderCurrentView();
+              return;
+            }
+            proceedWithStamp(`Geofence OK (${dist}m)`);
+          },
+          () => {
+            proceedWithStamp('Counter QR Verified');
+          },
+          { timeout: 3500 }
+        );
+      } else {
+        setTimeout(() => proceedWithStamp('Counter QR Verified'), 280);
+      }
+    }
+
+    // =========================================================================
+    // 7. VIEW RENDERERS (ALL 7 SCREENS + SUPER ADMIN DASHBOARD)
+    // =========================================================================
+    function renderCurrentView() {
+      updateNavHighlights();
+      const root = document.getElementById('app-root');
+
+      switch (state.currentView) {
+        case 'home':
+          root.innerHTML = renderHomeView();
+          mountQRCode('hero-standee-qr', 'https://apnaloop.in/s/sharma-chai', 120);
+          break;
+        case 'customer':
+          root.innerHTML = renderCustomerCardView();
+          mountCustomerRewardQR();
+          break;
+        case 'scan-success':
+          root.innerHTML = renderScanSuccessView();
+          break;
+        case 'onboarding':
+          root.innerHTML = renderOnboardingView();
+          mountOnboardingStandeeQR();
+          break;
+        case 'dashboard':
+          root.innerHTML = renderOwnerDashboardView();
+          break;
+        case 'redeem':
+          root.innerHTML = renderRedeemView();
+          break;
+        case 'admin':
+          root.innerHTML = renderSuperAdminView();
+          break;
+        default:
+          root.innerHTML = renderHomeView();
+      }
+
+      lucide.createIcons();
+    }
+
+    function mountQRCode(elementId, text, size = 140) {
+      const container = document.getElementById(elementId);
+      if (!container || typeof QRCode === 'undefined') return;
+      container.innerHTML = '';
+      new QRCode(container, {
+        text,
+        width: size,
+        height: size,
+        colorDark: '#1A1A1A',
+        colorLight: '#FFFFFF',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // SCREEN 1: LANDING PAGE (/)
+    // -------------------------------------------------------------------------
+    function renderHomeView() {
+      return `
+        <div class="space-y-8 view-enter">
+          <!-- Hero Section -->
+          <section class="bg-white rounded-3xl p-6 sm:p-10 shadow-sm border border-black/5 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div class="lg:col-span-7 space-y-5">
+              <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0F9D58]/10 text-[#0F9D58] text-xs font-extrabold">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span>${t('hero_badge')}</span>
+              </div>
+
+              <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#1A1A1A] leading-[1.15]">
+                ${t('hero_title')}
+              </h1>
+
+              <p class="text-sm sm:text-base text-neutral-600 leading-relaxed max-w-xl">
+                ${t('hero_sub')}
+              </p>
+
+              <div class="flex flex-col sm:flex-row gap-3 pt-1">
+                <button onclick="navigateTo('onboarding')" class="px-6 py-4 rounded-2xl bg-[#0F9D58] hover:bg-[#0c8248] text-white font-extrabold text-sm shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all">
+                  <i data-lucide="store" class="w-4 h-4"></i>
+                  <span>${t('cta_setup_shop')}</span>
+                </button>
+                <button onclick="navigateTo('customer', 'sharma-chai')" class="px-6 py-4 rounded-2xl bg-[#FFF8F0] hover:bg-orange-100/70 text-[#1A1A1A] border border-black/10 font-extrabold text-sm flex items-center justify-center gap-2 transition-all">
+                  <i data-lucide="qr-code" class="w-4 h-4 text-[#FF6B00]"></i>
+                  <span>${t('cta_open_card')}</span>
+                </button>
+              </div>
+
+              <!-- Quick Trust Badges -->
+              <div class="grid grid-cols-3 gap-2 pt-2 max-w-md">
+                <div class="p-2.5 rounded-2xl bg-[#FFF8F0] text-center">
+                  <p class="text-sm font-extrabold text-[#1A1A1A]">0 Apps</p>                  <p class="text-[11px] text-neutral-500">Seedha Browser</p>
+                </div>
+                <div class="p-2.5 rounded-2xl bg-[#FFF8F0] text-center">
+                  <p class="text-sm font-extrabold text-[#0F9D58]">WhatsApp</p>
+                  <p class="text-[11px] text-neutral-500">Live Alerts</p>
+                </div>
+                <div class="p-2.5 rounded-2xl bg-[#FFF8F0] text-center">
+                  <p class="text-sm font-extrabold text-[#FF6B00]">200m</p>
+                  <p class="text-[11px] text-neutral-500">Anti-Fraud Lock</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live QR Standee Preview Card -->
+            <div class="lg:col-span-5 flex justify-center">
+              <div class="w-full max-w-[300px] bg-gradient-to-b from-[#0F9D58] to-[#0B7A44] rounded-3xl p-5 text-white shadow-xl relative overflow-hidden">
+                <div class="flex items-center justify-between text-xs font-bold opacity-90 mb-3">
+                  <span>ApnaLoop Standee</span>
+                  <span class="px-2 py-0.5 rounded-full bg-white/20 text-[10px]">SCAN & WIN</span>
+                </div>
+                <div class="bg-white rounded-2xl p-4 text-[#1A1A1A] text-center shadow-inner">
+                  <p class="text-xs font-bold text-[#FF6B00] uppercase tracking-wider">Sharma Ji Ki Chai</p>
+                  <h3 class="text-base font-extrabold mt-0.5">10 Chai = 1 Chai FREE!</h3>
+                  <div id="hero-standee-qr" class="my-3 flex justify-center"></div>
+                  <p class="text-[11px] text-neutral-500 font-semibold">Camera kholein aur scan karein</p>
+                </div>
+                <button onclick="navigateTo('customer', 'sharma-chai')" class="mt-3.5 w-full py-2.5 rounded-xl bg-[#FF6B00] hover:bg-orange-600 text-white font-extrabold text-xs shadow-md transition-colors">
+                  Is QR Ko Scan Karein →
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- How It Works (Customer vs Owner) -->
+          <section class="space-y-4">
+            <h2 class="text-xl sm:text-2xl font-extrabold text-[#1A1A1A]">${t('how_title')}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Customer Flow -->
+              <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-xs space-y-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-2xl bg-[#FF6B00]/10 text-[#FF6B00] flex items-center justify-center">
+                    <i data-lucide="user-check" class="w-5 h-5"></i>
+                  </div>
+                  <h3 class="font-extrabold text-base text-[#1A1A1A]">${t('how_cust_title')}</h3>
+                </div>
+                <ol class="space-y-3 text-sm text-neutral-600">
+                  <li class="flex items-start gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-[#FFF8F0] text-[#FF6B00] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <span>Counter par rakha <strong>ApnaLoop QR</strong> phone camera se scan karein.</span>
+                  </li>
+                  <li class="flex items-start gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-[#FFF8F0] text-[#FF6B00] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <span>Pehli baar naam + mobile OTP dalein. Agli baar 1-tap mein stamp milega.</span>
+                  </li>
+                  <li class="flex items-start gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-[#FFF8F0] text-[#FF6B00] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <span><strong>10/10 stamps</strong> poore hote hi Gold Reward Code unlock!</span>
+                  </li>
+                </ol>
+              </div>
+
+              <!-- Owner Flow -->
+              <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-xs space-y-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-2xl bg-[#0F9D58]/10 text-[#0F9D58] flex items-center justify-center">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                  </div>
+                  <h3 class="font-extrabold text-base text-[#1A1A1A]">${t('how_owner_title')}</h3>
+                </div>
+                <ol class="space-y-3 text-sm text-neutral-600">
+                  <li class="flex items-start gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-emerald-50 text-[#0F9D58] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <span>Sirf 2 minute mein dukaan register karein aur QR standee print karein.</span>
+                  </li>
+                  <li class="flex items-start gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-emerald-50 text-[#0F9D58] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <span>Daily bheed mein phone chhoone ki zaroorat nahi — har stamp par WhatsApp alert aayega.</span>
+                  </li>
+                  <li class="flex items-start gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-emerald-50 text-[#0F9D58] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <span>Customer 6-digit code dikhaye, <strong>[ Reward Dedo ]</strong> dabakar free item dein.</span>
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </section>
+
+          <!-- Pricing Section -->
+          <section class="bg-[#1A1A1A] text-white rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div class="space-y-2">
+              <span class="inline-block px-3 py-1 rounded-full bg-[#FF6B00] text-white text-xs font-extrabold">
+                ${t('pricing_per_day')}
+              </span>
+              <h2 class="text-2xl sm:text-3xl font-extrabold">${t('pricing_free')}</h2>
+              <p class="text-neutral-300 text-sm sm:text-base">
+                ${t('pricing_paid')} • Unlimited customers, WhatsApp alerts & anti-fraud security.
+              </p>
+            </div>
+            <button onclick="navigateTo('onboarding')" class="w-full md:w-auto px-7 py-4 rounded-2xl bg-[#0F9D58] hover:bg-[#0c8248] text-white font-extrabold text-sm shrink-0 transition-colors">
+              30-Day Free Trial Shuru Karein →
+            </button>
+          </section>
+        </div>
+      `;
+    }
+
+    // -------------------------------------------------------------------------
+    // SCREEN 2 & 4: CUSTOMER STAMP CARD (/s/[shopId]) + REWARD UNLOCKED GOLD VIEW
+    // -------------------------------------------------------------------------
+    function renderCustomerCardView() {
+      const shop = state.shops.find((s) => s.id === state.selectedShopId) || state.shops[0];
+      const catMeta = CATEGORY_META[shop.category] || CATEGORY_META.Other;
+      const customer = state.currentCustomer;
+
+      // Shop Switcher Bar (so customer can switch between active shops seamlessly)
+      const shopSelectorHtml = `
+        <div class="bg-white rounded-2xl p-3 border border-black/5 flex items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2 text-xs font-bold text-neutral-600">
+            <i data-lucide="map-pin" class="w-4 h-4 text-[#0F9D58]"></i>
+            <span>Dukaan Chunein:</span>
+          </div>
+          <select onchange="navigateTo('customer', this.value)" class="text-xs sm:text-sm font-extrabold bg-[#FFF8F0] border border-black/10 rounded-xl px-3 py-2 text-[#1A1A1A] focus:outline-none">
+            ${state.shops
+              .map((s) => `<option value="${s.id}" ${s.id === shop.id ? 'selected' : ''}>${s.name} (${s.category})</option>`)
+              .join('')}
+          </select>
+        </div>
+      `;
+
+      // First-Time Customer Onboarding (Name + 10-Digit Phone + OTP Verification)
+      if (!customer) {
+        const pending = state.pendingOtp;
+        return `
+          <div class="max-w-md mx-auto view-enter">
+            ${shopSelectorHtml}
+            <div class="bg-white rounded-3xl p-6 shadow-md border border-black/5 space-y-5">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-[#0F9D58]/10 flex items-center justify-center text-2xl">${catMeta.emoji}</div>
+                <div>
+                  <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#FF6B00]">${shop.category}</span>
+                  <h2 class="text-xl font-extrabold text-[#1A1A1A]">${shop.name}</h2>
+                </div>
+              </div>
+
+              <div class="p-3.5 rounded-2xl bg-[#FFF8F0] border border-orange-200/70">
+                <p class="text-xs font-bold text-neutral-600">10 Stamps Poore Hone Par Reward:</p>
+                <p class="text-sm font-extrabold text-[#1A1A1A] mt-0.5">🎁 ${shop.reward_text}</p>
+              </div>
+
+              <div class="border-t border-neutral-100 pt-4">
+                <h3 class="font-extrabold text-base text-[#1A1A1A]">${t('verify_otp_title')}</h3>
+                <p class="text-xs text-neutral-500 mt-0.5">Ek baar verify karein, agli baar seedha stamp milega.</p>
+
+                ${
+                  !pending
+                    ? `
+                  <form onsubmit="handleSendCustomerOtp(event)" class="mt-4 space-y-3.5">
+                    <div>
+                      <label class="block text-xs font-bold text-neutral-700 mb-1">Aapka Naam</label>
+                      <input id="cust-name-input" type="text" required placeholder="Jaise: Rahul Sharma" class="w-full px-4 py-3.5 rounded-2xl border border-neutral-200 text-sm font-semibold focus:border-[#0F9D58] focus:outline-none" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold text-neutral-700 mb-1">10-Digit Mobile Number</label>
+                      <div class="flex items-center rounded-2xl border border-neutral-200 overflow-hidden focus-within:border-[#0F9D58]">
+                        <span class="px-3.5 py-3.5 bg-neutral-50 text-neutral-600 font-extrabold text-sm border-r border-neutral-200 tabular-nums">+91</span>
+                        <input id="cust-phone-input" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required placeholder="9876543210" class="w-full px-3.5 py-3.5 text-sm font-bold tabular-nums focus:outline-none" />
+                      </div>
+                    </div>
+                    <button type="submit" class="w-full py-4 rounded-2xl bg-[#0F9D58] hover:bg-[#0c8248] text-white font-extrabold text-sm shadow-md transition-colors">
+                      OTP Bhejein →
+                    </button>
+                  </form>
+                `
+                    : `
+                  <form onsubmit="handleVerifyCustomerOtp(event)" class="mt-4 space-y-3.5">
+                    <div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">
+                      <p class="font-bold">OTP bheja gaya: +91 ${pending.phone}</p>
+                      <p class="mt-1">SMS Verification Code: <strong class="text-base font-extrabold tracking-widest tabular-nums bg-white px-2 py-0.5 rounded-lg border border-emerald-300">${pending.code}</strong></p>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold text-neutral-700 mb-1">4-Digit OTP Daalein</label>
+                      <input id="cust-otp-input" type="tel" inputmode="numeric" maxlength="4" required placeholder="••••" class="w-full px-4 py-3.5 rounded-2xl border border-neutral-200 text-center text-xl font-extrabold tracking-[0.5em] tabular-nums focus:border-[#0F9D58] focus:outline-none" />
+                    </div>
+                    <div class="flex gap-2">
+                      <button type="button" onclick="cancelPendingOtp()" class="px-4 py-3.5 rounded-2xl bg-neutral-100 text-neutral-700 font-bold text-xs">Number Badlein</button>
+                      <button type="submit" class="flex-1 py-3.5 rounded-2xl bg-[#0F9D58] text-white font-extrabold text-sm">Verify & Card Kholein</button>
+                    </div>
+                  </form>
+                `
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Check if customer has unlocked a 10/10 reward at this shop -> SCREEN 4: REWARD UNLOCKED GOLD THEME
+      const unlockedReward = getCustomerUnlockedReward(shop.id, customer.id);
+      if (unlockedReward) {
+        return `
+          <div class="max-w-md mx-auto view-enter">
+            ${shopSelectorHtml}
+            <div class="gold-card rounded-3xl p-6 shadow-xl text-center space-y-5 relative overflow-hidden">
+              <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500 text-white text-xs font-extrabold tracking-wide shadow-xs">
+                <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
+                <span>REWARD UNLOCKED! (10/10)</span>
+              </div>
+
+              <div>
+                <p class="text-xs font-bold text-amber-900 uppercase tracking-wider">${shop.name}</p>
+                <h2 class="text-2xl font-extrabold text-[#1A1A1A] mt-1">${unlockedReward.reward_text}</h2>
+                <p class="text-xs text-amber-900/80 mt-1">Counter par dukaandar ko yeh code ya QR dikhayein</p>
+              </div>
+
+              <!-- 6-Digit Redeem Code Box -->
+              <div class="bg-white rounded-2xl p-4 border-2 border-amber-400 shadow-inner">
+                <p class="text-[11px] font-bold text-neutral-500 uppercase">6-Digit Redeem Code</p>
+                <p class="text-4xl font-extrabold tracking-[0.2em] text-[#1A1A1A] tabular-nums mt-1">${unlockedReward.code}</p>
+              </div>
+
+              <!-- Scannable Reward QR -->
+              <div class="bg-white rounded-2xl p-4 inline-flex flex-col items-center border border-amber-300 shadow-xs">
+                <div id="customer-reward-qr"></div>
+                <span class="text-[10px] font-bold text-neutral-500 mt-2">Owner Scan / Code Verification</span>
+              </div>
+
+              <div class="pt-1 flex flex-col gap-2">
+                <button onclick="openRedeemWithPrefill('${unlockedReward.code}')" class="w-full py-3.5 rounded-2xl bg-[#1A1A1A] hover:bg-neutral-800 text-white font-extrabold text-xs flex items-center justify-center gap-2">
+                  <i data-lucide="check-circle-2" class="w-4 h-4 text-amber-400"></i>
+                  <span>Owner Redeem Screen Kholein (${unlockedReward.code})</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Standard Customer 10-Stamp Card
+      const activeStamps = getCustomerActiveStamps(shop.id, customer.id);
+      const count = Math.min(10, activeStamps.length);
+      const remaining = Math.max(0, 10 - count);
+      const pct = (count / 10) * 100;
+      const stampedToday = activeStamps.some((s) => isSameDay(s.created_at, new Date().toISOString()));
+
+      const slotsHtml = Array.from({ length: 10 }, (_, idx) => {
+        const slotNum = idx + 1;
+        const filled = slotNum <= count;
+        const isTenth = slotNum === 10;
+
+        if (filled) {
+          return `
+            <div class="aspect-square rounded-2xl bg-[#0F9D58] text-white flex flex-col items-center justify-center shadow-sm border-2 border-[#0F9D58]">
+              <i data-lucide="check" class="w-5 h-5 stroke-[3]"></i>
+              <span class="text-[10px] font-extrabold tabular-nums mt-0.5">#${slotNum}</span>
+            </div>
+          `;
+        }
+        return `
+          <div class="aspect-square rounded-2xl ${isTenth ? 'bg-amber-50 border-2 border-dashed border-amber-400 text-amber-700' : 'bg-neutral-100 border border-neutral-200 text-neutral-400'} flex flex-col items-center justify-center">
+            ${isTenth ? `<i data-lucide="gift" class="w-4 h-4"></i>` : `<span class="text-xs font-extrabold tabular-nums">${slotNum}</span>`}
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="max-w-md mx-auto view-enter">
+          ${shopSelectorHtml}
+
+          <div class="bg-white rounded-3xl shadow-md border border-black/5 overflow-hidden">
+            <!-- Shop Banner Header -->
+            <div class="bg-gradient-to-r from-[#0F9D58] to-[#0B7A44] p-5 text-white flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-xs flex items-center justify-center text-2xl">
+                  ${catMeta.emoji}
+                </div>
+                <div>
+                  <span class="inline-block px-2 py-0.5 rounded-md bg-white/20 text-[10px] font-bold uppercase tracking-wider">${shop.category}</span>
+                  <h2 class="text-lg font-extrabold leading-tight mt-0.5">${shop.name}</h2>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-2xl font-extrabold tabular-nums">${count}<span class="text-sm opacity-75">/10</span></span>
+                <p class="text-[10px] uppercase tracking-wider opacity-80">Stamps</p>
+              </div>
+            </div>
+
+            <!-- Customer Identity Bar -->
+            <div class="px-5 py-2.5 bg-[#FFF8F0] border-b border-black/5 flex items-center justify-between text-xs">
+              <span class="font-bold text-neutral-700">👋 ${customer.name} (<span class="tabular-nums">+91 ${customer.phone}</span>)</span>
+              <button onclick="logoutCustomer()" class="text-neutral-500 hover:text-red-600 font-bold underline">Switch</button>
+            </div>
+
+            <!-- 10 Circular/Rounded Stamp Slots -->
+            <div class="p-5 space-y-5">
+              <div class="grid grid-cols-5 gap-2.5">
+                ${slotsHtml}
+              </div>
+
+              <!-- Progress Bar -->
+              <div class="space-y-1.5">
+                <div class="w-full h-2.5 bg-neutral-100 rounded-full overflow-hidden">
+                  <div class="h-full bg-[#0F9D58] rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                </div>
+                <p class="text-xs sm:text-sm font-extrabold text-[#1A1A1A] text-center">
+                  ${
+                    remaining === 1
+                      ? `🔥 Sirf 1 stamp aur! Agli baar <span class="text-[#0F9D58]">${shop.reward_text}</span>!`
+                      : `🎯 ${remaining} stamps aur, <span class="text-[#0F9D58]">${shop.reward_text}</span> milegi!`
+                  }
+                </p>
+              </div>
+
+              <!-- Claim Today's Stamp Action -->
+              <div class="pt-1">
+                <button
+                  id="claim-stamp-btn"
+                  onclick="handleClaimStamp()"
+                  class="w-full py-4 rounded-2xl ${
+                    stampedToday
+                      ? 'bg-neutral-200 text-neutral-600 cursor-not-allowed'
+                      : 'bg-[#FF6B00] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/25'
+                  } font-extrabold text-sm flex items-center justify-center gap-2 transition-all"
+                >
+                  <i data-lucide="${stampedToday ? 'check-circle' : 'stamp'}" class="w-5 h-5"></i>
+                  <span>${stampedToday ? 'Aaj Ka Stamp Mil Chuka Hai ✓' : t('claim_stamp_btn')}</span>
+                </button>
+                <p class="text-[11px] text-neutral-400 text-center mt-2">
+                  🔒 Protected by 1-Stamp/Day Rule, QR Session Token & 200m Geofence
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function mountCustomerRewardQR() {
+      const shop = state.shops.find((s) => s.id === state.selectedShopId) || state.shops[0];
+      if (!state.currentCustomer) return;
+      const unlocked = getCustomerUnlockedReward(shop.id, state.currentCustomer.id);
+      if (unlocked) {
+        mountQRCode('customer-reward-qr', `APNALOOP-REDEEM:${unlocked.code}`, 130);
+      }
+    }
+
+    function handleSendCustomerOtp(e) {
+      e.preventDefault();
+      const name = document.getElementById('cust-name-input').value.trim();
+      const phone = document.getElementById('cust-phone-input').value.trim();
+      if (!name || !/^\d{10}$/.test(phone)) {
+        showToast('Sahi naam aur 10-digit mobile number daalein.', 'error');
+        return;
+      }
+      const code = Math.floor(1000 + Math.random() * 9000).toString();
+      state.pendingOtp = { name, phone, code, expiresAt: Date.now() + 5 * 60 * 1000 };
+      saveState();
+      renderCurrentView();
+      showToast(`OTP +91 ${phone} par bheja gaya: ${code}`);
+    }
+
+    function handleVerifyCustomerOtp(e) {
+      e.preventDefault();
+      const entered = document.getElementById('cust-otp-input').value.trim();
+      if (!state.pendingOtp) return;
+      if (entered !== state.pendingOtp.code) {
+        showToast('Galat OTP! Upar dikhaya gaya 4-digit code daalein.', 'error');
+        return;
+      }
+
+      state.currentCustomer = {
+        id: 'cust-' + state.pendingOtp.phone,
+        name: state.pendingOtp.name,
+        phone: state.pendingOtp.phone,
+        verified_at: new Date().toISOString()
+      };
+      state.pendingOtp = null;
+      issueShortLivedToken(state.selectedShopId);
+      saveState();
+      renderCurrentView();
+      showToast(`Swagat hai ${state.currentCustomer.name}!`);
+    }
+
+    function cancelPendingOtp() {
+      state.pendingOtp = null;
+      saveState();
+      renderCurrentView();
+    }
+
+    function logoutCustomer() {
+      state.currentCustomer = null;
+      state.pendingOtp = null;
+      saveState();
+      renderCurrentView();
+    }
+
+    // -------------------------------------------------------------------------
+    // SCREEN 3: SCAN SUCCESS SCREEN
+    // -------------------------------------------------------------------------
+    function renderScanSuccessView() {
+      const info = state.lastScanSuccess;
+      if (!info) {
+        return renderCustomerCardView();
+      }
+      const remaining = Math.max(0, 10 - info.count);
+
+      return `
+        <div class="max-w-md mx-auto view-enter">
+          <div class="bg-white rounded-3xl p-7 shadow-lg border border-black/5 text-center space-y-5">
+            <!-- Animated Stamp Icon -->
+            <div class="w-24 h-24 mx-auto rounded-full bg-[#0F9D58]/10 flex items-center justify-center">
+              <div class="w-16 h-16 rounded-full bg-[#0F9D58] text-white flex items-center justify-center shadow-lg animate-stamp-pop">
+                <i data-lucide="check" class="w-9 h-9 stroke-[3]"></i>
+              </div>
+            </div>
+
+            <div>
+              <span class="inline-block px-3 py-1 rounded-full bg-emerald-50 text-[#0F9D58] text-xs font-extrabold">
+                STAMP RECORDED • ${info.timestamp}
+              </span>
+              <h2 class="text-2xl font-extrabold text-[#1A1A1A] mt-2">Badhai Ho! Stamp Mil Gaya</h2>
+              <p class="text-sm text-neutral-500 mt-0.5">${info.shopName}</p>
+            </div>
+
+            <!-- Updated Counter -->
+            <div class="p-4 rounded-2xl bg-[#FFF8F0] border border-orange-200/70">
+              <p class="text-3xl font-extrabold text-[#1A1A1A] tabular-nums">${info.count} <span class="text-base font-bold text-neutral-400">/ 10 Stamps</span></p>
+              <p class="text-xs font-bold text-[#FF6B00] mt-1">
+                ${remaining} stamps aur, phir ${info.rewardText}!
+              </p>
+            </div>
+
+            <p class="text-xs text-neutral-500">
+              ✅ Dukaandar ko WhatsApp par notification bhej diya gaya hai.
+            </p>
+
+            <button onclick="navigateTo('customer', '${info.shopId}')" class="w-full py-4 rounded-2xl bg-[#0F9D58] hover:bg-[#0c8248] text-white font-extrabold text-sm shadow-md transition-colors">
+              Apna Stamp Card Dekhein →
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // -------------------------------------------------------------------------
+    // SCREEN 5: OWNER ONBOARDING — 2-MINUTE SETUP (/onboarding)
+    // -------------------------------------------------------------------------
+    let newlyCreatedShopId = null;
+
+    function renderOnboardingView() {
+      const createdShop = newlyCreatedShopId
+        ? state.shops.find((s) => s.id === newlyCreatedShopId)
+        : state.shops[0];
+
+      return `
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start view-enter">
+          <!-- Left: Strictly 3 Input Fields Form -->
+          <div class="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-black/5">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF6B00]/10 text-[#FF6B00] text-xs font-extrabold mb-3">
+              <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+              <span>Pehle 30 Din Bilkul FREE</span>
+            </div>
+            <h2 class="text-2xl font-extrabold text-[#1A1A1A]">${t('setup_title')}</h2>
+            <p class="text-sm text-neutral-500 mt-1">${t('setup_sub')}</p>
+
+            <form onsubmit="handleCreateShop(event)" class="mt-6 space-y-4">
+              <!-- Input 1: Shop Name -->
+              <div>
+                <label class="block text-xs font-extrabold text-neutral-700 mb-1.5">1. Shop Name (Dukaan Ka Naam)</label>
+                <input id="shop-name-input" type="text" required placeholder="Jaise: Gupta Juice Corner" class="w-full px-4 py-3.5 rounded-2xl border border-neutral-200 text-sm font-semibold focus:border-[#0F9D58] focus:outline-none" />
+              </div>
+
+              <!-- Input 2: Owner Phone -->
+              <div>
+                <label class="block text-xs font-extrabold text-neutral-700 mb-1.5">2. Owner Phone (WhatsApp Alerts Ke Liye)</label>
+                <div class="flex items-center rounded-2xl border border-neutral-200 overflow-hidden focus-within:border-[#0F9D58]">
+                  <span class="px-3.5 py-3.5 bg-neutral-50 text-neutral-600 font-extrabold text-sm border-r border-neutral-200 tabular-nums">+91</span>
+                  <input id="shop-phone-input" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required placeholder="9876543210" class="w-full px-3.5 py-3.5 text-sm font-bold tabular-nums focus:outline-none" />
+                </div>
+              </div>
+
+              <!-- Input 3: Kya bechte ho? -->
+              <div>
+                <label class="block text-xs font-extrabold text-neutral-700 mb-1.5">3. Kya bechte ho?</label>
+                <div class="grid grid-cols-3 gap-2">
+                  ${Object.keys(CATEGORY_META)
+                    .map(
+                      (cat, idx) => `
+                    <label class="cursor-pointer">
+                      <input type="radio" name="shop_category" value="${cat}" ${idx === 0 ? 'checked' : ''} class="peer sr-only" />
+                      <div class="p-3 rounded-2xl border border-neutral-200 peer-checked:border-[#0F9D58] peer-checked:bg-[#0F9D58]/10 text-center transition-all">
+                        <div class="text-xl">${CATEGORY_META[cat].emoji}</div>
+                        <div class="text-xs font-extrabold text-[#1A1A1A] mt-1">${cat}</div>
+                      </div>
+                    </label>
+                  `
+                    )
+                    .join('')}
+                </div>
+              </div>
+
+              <button type="submit" class="w-full py-4 rounded-2xl bg-[#0F9D58] hover:bg-[#0c8248] text-white font-extrabold text-sm shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="qr-code" class="w-4 h-4"></i>
+                <span>QR Standee Banayein →</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Right: Live Printable QR Standee Preview -->
+          <div class="lg:col-span-5 flex flex-col items-center">
+            <div id="printable-standee-area" class="w-full max-w-[330px] bg-white rounded-3xl p-6 shadow-md border-2 border-[#1A1A1A] text-center space-y-4">
+              <div class="flex items-center justify-between border-b border-neutral-100 pb-3">
+                <span class="font-extrabold text-sm text-[#0F294A]">Apna<span class="text-[#D4AF37]">Loop</span></span>
+                <span class="px-2.5 py-0.5 rounded-full bg-[#FFF8F0] text-[#FF6B00] text-[10px] font-extrabold uppercase">${createdShop.category}</span>
+              </div>
+
+              <div>
+                <h3 class="text-xl font-extrabold text-[#1A1A1A]">${createdShop.name}</h3>
+                <p class="text-xs font-bold text-[#0F9D58] mt-1">10 Stamps = ${createdShop.reward_text}</p>
+              </div>
+
+              <div class="p-3 rounded-2xl bg-[#FFF8F0] inline-flex flex-col items-center border border-orange-200/70">
+                <div id="onboarding-standee-qr"></div>
+                <span class="text-[11px] font-mono text-neutral-600 mt-2">apnaloop.in/s/${createdShop.id}</span>
+              </div>
+
+              <p class="text-xs text-neutral-600 font-semibold">
+                📱 Phone camera se scan karein • Bina app download ke stamp paayein
+              </p>
+            </div>
+
+            <div class="w-full max-w-[330px] mt-4 grid grid-cols-2 gap-2.5 no-print">
+              <button onclick="window.print()" class="py-3.5 px-4 rounded-2xl bg-[#1A1A1A] hover:bg-neutral-800 text-white font-extrabold text-xs flex items-center justify-center gap-1.5">
+                <i data-lucide="printer" class="w-4 h-4"></i>
+                <span>Print / PDF Standee</span>
+              </button>
+              <button onclick="navigateTo('customer', '${createdShop.id}')" class="py-3.5 px-4 rounded-2xl bg-[#FF6B00] hover:bg-orange-600 text-white font-extrabold text-xs flex items-center justify-center gap-1.5">
+                <i data-lucide="external-link" class="w-4 h-4"></i>
+                <span>Card Khol Kar Dekhein</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function mountOnboardingStandeeQR() {
+      const shop = newlyCreatedShopId
+        ? state.shops.find((s) => s.id === newlyCreatedShopId)
+        : state.shops[0];
+      if (shop) {
+        mountQRCode('onboarding-standee-qr', `https://apnaloop.in/s/${shop.id}`, 155);
+      }
+    }
+
+    function handleCreateShop(e) {
+      e.preventDefault();
+      const name = document.getElementById('shop-name-input').value.trim();
+      const phone = document.getElementById('shop-phone-input').value.trim();
+      const category = document.querySelector('input[name="shop_category"]:checked').value;
+
+      if (!name || !/^\d{10}$/.test(phone)) {
+        showToast('Shop name aur 10-digit phone number sahi bharein.', 'error');
+        return;
+      }
+
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      const id = `${slug || 'shop'}-${Math.floor(100 + Math.random() * 900)}`;
+      const catMeta = CATEGORY_META[category] || CATEGORY_META.Other;
+
+      const finalizeShopCreation = (lat, lng) => {
+        const newShop = {
+          id,
+          name,
+          phone,
+          category,
+          reward_text: catMeta.defaultReward,
+          lat,
+          lng,
+          subscription_status: 'Trial',
+          created_at: new Date().toISOString()
+        };
+
+        state.shops.unshift(newShop);
+        if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('shops', newShop);
+
+        state.selectedShopId = id;
+        state.ownerShopId = id;
+        newlyCreatedShopId = id;
+
+        const welcomeMsg = {
+          id: 'wa-welcome-' + Date.now(),
+          shop_id: id,
+          stamp_id: null,
+          text: `🎉 Badhai ho! "${name}" ApnaLoop par live ho gaya hai. Pehle 30 din bilkul FREE hain!`,
+          timestamp: new Date().toISOString(),
+          cancelled: false,
+          unread: true
+        };
+        state.whatsappMessages.unshift(welcomeMsg);
+        if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('whatsappMessages', welcomeMsg);
+
+        logAudit('SHOP_REGISTERED', name, `New ${category} shop registered by +91 ${phone} (30-Day Free Trial)`);
+        saveState();
+        renderCurrentView();
+        showToast(`${name} ka QR Standee taiyar hai!`);
+      };
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => finalizeShopCreation(pos.coords.latitude, pos.coords.longitude),
+          () => finalizeShopCreation(null, null),
+          { timeout: 2500 }
+        );
+      } else {
+        finalizeShopCreation(null, null);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // SCREEN 6: OWNER DASHBOARD — SIMPLE (/dashboard)
+    // -------------------------------------------------------------------------
+    function renderOwnerDashboardView() {
+      const shop = state.shops.find((s) => s.id === state.ownerShopId) || state.shops[0];
+      const shopStamps = state.stamps.filter((s) => s.shop_id === shop.id);
+      const activeStamps = shopStamps.filter((s) => s.status === 'active');
+
+      // KPI 1: Aaj ke stamps
+      const todayIso = new Date().toISOString();
+      const todayStampsCount = activeStamps.filter((s) => isSameDay(s.created_at, todayIso)).length;
+
+      // KPI 2: Is hafte wapas aaye (customers with >=2 stamps or active this week)
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const weekStamps = activeStamps.filter((s) => new Date(s.created_at).getTime() >= weekAgo);
+      const repeatCustomersThisWeek = new Set(weekStamps.map((s) => s.customer_id)).size;
+
+      // KPI 3: Total unique customers
+      const totalCustomersCount = new Set(shopStamps.map((s) => s.customer_id)).size;
+
+      const recentActivity = shopStamps.slice(0, 12);
+
+      return `
+        <div class="space-y-6 view-enter">
+          <!-- Shop Header & Selector -->
+          <div class="bg-white rounded-3xl p-5 border border-black/5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#0F9D58] text-xs font-extrabold">${shop.subscription_status}</span>
+                <span class="text-xs text-neutral-400 tabular-nums">+91 ${shop.phone}</span>
+              </div>
+              <h2 class="text-xl font-extrabold text-[#1A1A1A] mt-1">${shop.name} — Owner Dashboard</h2>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <select onchange="switchOwnerShop(this.value)" class="px-3.5 py-2.5 rounded-2xl bg-[#FFF8F0] border border-black/10 text-xs font-extrabold text-[#1A1A1A]">
+                ${state.shops
+                  .map((s) => `<option value="${s.id}" ${s.id === shop.id ? 'selected' : ''}>${s.name}</option>`)
+                  .join('')}
+              </select>
+              <button onclick="navigateTo('redeem')" class="px-4 py-2.5 rounded-2xl bg-[#FF6B00] text-white text-xs font-extrabold shrink-0">
+                Redeem Code
+              </button>
+            </div>
+          </div>
+
+          <!-- 3 Large KPI Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-neutral-500 uppercase tracking-wider">${t('dash_today')}</span>
+                <div class="w-9 h-9 rounded-xl bg-[#0F9D58]/10 text-[#0F9D58] flex items-center justify-center">
+                  <i data-lucide="stamp" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p class="text-4xl font-extrabold text-[#1A1A1A] tabular-nums mt-3">${todayStampsCount}</p>
+              <p class="text-xs text-[#0F9D58] font-bold mt-1">Live counter scans</p>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-neutral-500 uppercase tracking-wider">${t('dash_repeat')}</span>
+                <div class="w-9 h-9 rounded-xl bg-[#FF6B00]/10 text-[#FF6B00] flex items-center justify-center">
+                  <i data-lucide="repeat" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p class="text-4xl font-extrabold text-[#1A1A1A] tabular-nums mt-3">${repeatCustomersThisWeek}</p>
+              <p class="text-xs text-[#FF6B00] font-bold mt-1">Last 7 days active</p>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-neutral-500 uppercase tracking-wider">${t('dash_total')}</span>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <i data-lucide="users" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p class="text-4xl font-extrabold text-[#1A1A1A] tabular-nums mt-3">${totalCustomersCount}</p>
+              <p class="text-xs text-neutral-500 font-bold mt-1">Verified mobile numbers</p>            </div>
+          </div>
+
+          <!-- Recent Activity List with 1-Tap [ Cancel Stamp ] -->
+          <div class="bg-white rounded-3xl p-5 sm:p-6 border border-black/5 shadow-xs">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-extrabold text-base text-[#1A1A1A]">Recent Stamp Activity</h3>
+              <span class="text-xs text-neutral-400">1-Tap Rollback Enabled</span>
+            </div>
+
+            ${
+              !recentActivity.length
+                ? `<p class="text-sm text-neutral-500 py-6 text-center">Is dukaan par abhi koi stamp nahi laga hai.</p>`
+                : `
+              <div class="divide-y divide-neutral-100">
+                ${recentActivity
+                  .map((st) => {
+                    const custCount = getCustomerActiveStamps(shop.id, st.customer_id).length;
+                    const isCancelled = st.status === 'cancelled';
+                    const isRedeemedCycle = st.status === 'redeemed_cycle';
+
+                    return `
+                      <div class="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-2xl ${isCancelled ? 'bg-red-50 text-red-600' : 'bg-[#FFF8F0] text-[#1A1A1A]'} font-extrabold text-sm flex items-center justify-center shrink-0">
+                            ${st.customer_name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div class="flex items-center gap-2">
+                              <p class="font-extrabold text-sm text-[#1A1A1A]">${st.customer_name}</p>
+                              <span class="px-2 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums ${
+                                isCancelled
+                                  ? 'bg-red-100 text-red-700'
+                                  : isRedeemedCycle
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-emerald-50 text-[#0F9D58]'
+                              }">
+                                ${isCancelled ? 'Cancelled' : isRedeemedCycle ? 'Redeemed' : `${custCount}/10`}
+                              </span>
+                            </div>
+                            <p class="text-xs text-neutral-500 tabular-nums">+91 ${st.customer_phone} • ${formatTimeAgo(st.created_at)}</p>
+                          </div>
+                        </div>
+
+                        <div class="flex items-center justify-end">
+                          ${
+                            st.status === 'active'
+                              ? `<button onclick="cancelStampById('${st.id}')" class="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-extrabold transition-colors">[ Cancel Stamp ]</button>`
+                              : `<span class="text-xs font-bold text-neutral-400">${isCancelled ? 'Radd Kiya Gaya' : 'Completed'}</span>`
+                          }
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join('')}
+              </div>
+            `
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    function switchOwnerShop(shopId) {
+      state.ownerShopId = shopId;
+      saveState();
+      renderCurrentView();
+    }
+
+    // -------------------------------------------------------------------------
+    // SCREEN 7: REDEEM SCREEN (/redeem) — 6-DIGIT NUMERIC KEYPAD
+    // -------------------------------------------------------------------------
+    let redeemCodeBuffer = '';
+
+    function openRedeemWithPrefill(code) {
+      redeemCodeBuffer = code;
+      navigateTo('redeem');
+    }
+
+    function renderRedeemView() {
+      const matchedReward =
+        redeemCodeBuffer.length === 6
+          ? state.rewards.find((r) => r.code === redeemCodeBuffer)
+          : null;
+
+      const digits = Array.from({ length: 6 }, (_, i) => redeemCodeBuffer[i] || '');
+
+      return `
+        <div class="max-w-md mx-auto view-enter">
+          <div class="bg-white rounded-3xl p-6 shadow-md border border-black/5 space-y-5">
+            <div class="text-center">
+              <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-2">
+                <i data-lucide="gift" class="w-6 h-6"></i>
+              </div>
+              <h2 class="text-xl font-extrabold text-[#1A1A1A]">${t('redeem_title')}</h2>
+              <p class="text-xs text-neutral-500 mt-0.5">Customer ke phone par dikh raha 6-digit code daalein</p>
+            </div>
+
+            <!-- 6-Digit Display Boxes -->
+            <div class="grid grid-cols-6 gap-2">
+              ${digits
+                .map(
+                  (d) => `
+                <div class="h-14 rounded-2xl border-2 ${d ? 'border-[#0F9D58] bg-emerald-50/40' : 'border-neutral-200 bg-[#FFF8F0]'} flex items-center justify-center text-2xl font-extrabold text-[#1A1A1A] tabular-nums">
+                  ${d}
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+
+            <!-- Validation Result Card -->
+            ${
+              redeemCodeBuffer.length === 6
+                ? matchedReward
+                  ? matchedReward.status === 'unlocked'
+                    ? `
+                    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 space-y-3">
+                      <div class="flex items-center justify-between">
+                        <span class="px-2.5 py-0.5 rounded-full bg-[#0F9D58] text-white text-[10px] font-extrabold">VALID REWARD</span>
+                        <span class="text-xs font-bold text-neutral-600">${matchedReward.shop_name}</span>
+                      </div>
+                      <div>
+                        <p class="text-sm font-extrabold text-[#1A1A1A]">${matchedReward.customer_name} (+91 ${matchedReward.customer_phone})</p>
+                        <p class="text-base font-extrabold text-[#0F9D58] mt-0.5">🎁 ${matchedReward.reward_text}</p>
+                      </div>
+                      <button onclick="confirmGiveReward('${matchedReward.id}')" class="w-full py-3.5 rounded-2xl bg-[#0F9D58] hover:bg-[#0c8248] text-white font-extrabold text-sm shadow-md">
+                        [ ${t('redeem_btn')} ] ✓
+                      </button>
+                    </div>
+                  `
+                    : `
+                    <div class="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-center text-xs font-bold text-amber-900">
+                      Yeh code pehle hi "${matchedReward.status}" ho chuka hai.
+                    </div>
+                  `
+                  : `
+                  <div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-center text-xs font-bold text-red-700">
+                    ❌ Code ${redeemCodeBuffer} nahi mila. Kripya sahi 6-digit code check karein.
+                  </div>
+                `
+                : ''
+            }
+
+            <!-- Large Tactile Numeric Keypad -->
+            <div class="grid grid-cols-3 gap-2.5 pt-1">
+              ${['1', '2', '3', '4', '5', '6', '7', '8', '9']
+                .map(
+                  (num) => `
+                <button onclick="pressRedeemDigit('${num}')" class="h-14 rounded-2xl bg-[#FFF8F0] hover:bg-orange-100/80 active:scale-95 border border-black/5 text-xl font-extrabold text-[#1A1A1A] tabular-nums transition-all">
+                  ${num}
+                </button>
+              `
+                )
+                .join('')}
+              <button onclick="clearRedeemDigits()" class="h-14 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-xs font-extrabold text-neutral-600">
+                CLEAR
+              </button>
+              <button onclick="pressRedeemDigit('0')" class="h-14 rounded-2xl bg-[#FFF8F0] hover:bg-orange-100/80 active:scale-95 border border-black/5 text-xl font-extrabold text-[#1A1A1A] tabular-nums">
+                0
+              </button>
+              <button onclick="backspaceRedeemDigit()" class="h-14 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-sm font-extrabold text-neutral-700 flex items-center justify-center">
+                ⌫
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function pressRedeemDigit(d) {
+      if (redeemCodeBuffer.length < 6) {
+        redeemCodeBuffer += d;
+        renderCurrentView();
+      }
+    }
+
+    function backspaceRedeemDigit() {
+      redeemCodeBuffer = redeemCodeBuffer.slice(0, -1);
+      renderCurrentView();
+    }
+
+    function clearRedeemDigits() {
+      redeemCodeBuffer = '';
+      renderCurrentView();
+    }
+
+    function confirmGiveReward(rewardId) {
+      const reward = state.rewards.find((r) => r.id === rewardId);
+      if (!reward || reward.status !== 'unlocked') return;
+
+      reward.status = 'redeemed';
+      reward.redeemed_at = new Date().toISOString();
+      if (window.ApnaLoopLiveDB) {
+        window.ApnaLoopLiveDB.patchRecord('rewards', reward.id, {
+          status: 'redeemed',
+          redeemed_at: reward.redeemed_at
+        });
+      }
+
+      // Reset customer's active stamps at this shop to 0/10 for the next loop cycle!
+      state.stamps.forEach((s) => {
+        if (s.shop_id === reward.shop_id && s.customer_id === reward.customer_id && s.status === 'active') {
+          s.status = 'redeemed_cycle';
+          if (window.ApnaLoopLiveDB) {
+            window.ApnaLoopLiveDB.patchRecord('stamps', s.id, { status: 'redeemed_cycle' });
+          }
+        }
+      });
+
+      const redMsg = {
+        id: 'wa-red-' + Date.now(),
+        shop_id: reward.shop_id,
+        stamp_id: null,
+        text: `🎁 Reward Redeemed! ${reward.customer_name} ne "${reward.reward_text}" claim kiya (Code: ${reward.code}). Naya 0/10 card shuru!`,
+        timestamp: new Date().toISOString(),
+        cancelled: false,
+        unread: true
+      };
+      state.whatsappMessages.unshift(redMsg);
+      if (window.ApnaLoopLiveDB) window.ApnaLoopLiveDB.upsertRecord('whatsappMessages', redMsg);
+
+      logAudit(
+        'REWARD_REDEEMED',
+        reward.shop_name,
+        `Redeemed code ${reward.code} for ${reward.customer_name} ("${reward.reward_text}")`
+      );
+
+      redeemCodeBuffer = '';
+      saveState();
+      renderCurrentView();
+      fireConfetti(true);
+      showToast(`Reward Redeemed! ${reward.customer_name} ka naya card 0/10 se shuru hua.`);
+    }
+
+    // -------------------------------------------------------------------------
+    // SUPER ADMIN DASHBOARD (/admin)
+    // -------------------------------------------------------------------------
+    function renderSuperAdminView() {
+      const totalShops = state.shops.length;
+      const activeSubs = state.shops.filter((s) => s.subscription_status !== 'Paused').length;
+      const totalCustomers = new Set(state.stamps.map((s) => s.customer_id)).size;
+      const totalStamps = state.stamps.filter((s) => s.status !== 'cancelled').length;
+      const totalRewards = state.rewards.filter((r) => r.status === 'redeemed').length;
+
+      return `
+        <div class="space-y-6 view-enter">
+          <div class="bg-[#1A1A1A] text-white rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-5 h-5 text-[#0F9D58]"></i>
+                <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">ApnaLoop Control Center</span>
+              </div>
+              <h2 class="text-2xl font-extrabold mt-1">Super Admin Dashboard</h2>
+            </div>
+            <div class="text-xs text-neutral-300 bg-white/10 px-3.5 py-2 rounded-2xl">
+              RLS Security • Short-Lived QR Tokens • 200m Geofence Active
+            </div>
+          </div>
+
+          <!-- 6 Platform-Wide KPI Cards -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div class="bg-white rounded-2xl p-4 border border-black/5">
+              <p class="text-[11px] font-bold text-neutral-500">Total Shops</p>
+              <p class="text-2xl font-extrabold text-[#1A1A1A] tabular-nums mt-1">${totalShops}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-black/5">
+              <p class="text-[11px] font-bold text-neutral-500">Active Subs</p>
+              <p class="text-2xl font-extrabold text-[#0F9D58] tabular-nums mt-1">${activeSubs}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-black/5">
+              <p class="text-[11px] font-bold text-neutral-500">Total Customers</p>
+              <p class="text-2xl font-extrabold text-[#1A1A1A] tabular-nums mt-1">${totalCustomers}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-black/5">
+              <p class="text-[11px] font-bold text-neutral-500">Total Stamps</p>
+              <p class="text-2xl font-extrabold text-[#FF6B00] tabular-nums mt-1">${totalStamps}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-black/5">
+              <p class="text-[11px] font-bold text-neutral-500">Rewards Given</p>
+              <p class="text-2xl font-extrabold text-amber-600 tabular-nums mt-1">${totalRewards}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-black/5">
+              <p class="text-[11px] font-bold text-neutral-500">Fraud Blocked</p>
+              <p class="text-2xl font-extrabold text-red-600 tabular-nums mt-1">${state.fraudBlockedCount}</p>
+            </div>
+          </div>
+
+          <!-- Registered Shops Table -->
+          <div class="bg-white rounded-3xl p-5 sm:p-6 border border-black/5 shadow-xs overflow-x-auto">
+            <h3 class="font-extrabold text-base text-[#1A1A1A] mb-4">All Registered Shops</h3>
+            <table class="w-full text-left border-collapse min-w-[560px]">
+              <thead>
+                <tr class="border-b border-neutral-100 text-[11px] font-extrabold uppercase text-neutral-400">
+                  <th class="pb-3">Shop Name</th>
+                  <th class="pb-3">Category</th>
+                  <th class="pb-3">Owner Contact</th>
+                  <th class="pb-3">Stamps</th>
+                  <th class="pb-3">Subscription</th>
+                  <th class="pb-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-neutral-100 text-xs sm:text-sm">
+                ${state.shops
+                  .map((s) => {
+                    const sStamps = state.stamps.filter((st) => st.shop_id === s.id && st.status !== 'cancelled').length;
+                    return `
+                      <tr>
+                        <td class="py-3.5 font-extrabold text-[#1A1A1A]">${s.name}</td>
+                        <td class="py-3.5"><span class="px-2.5 py-1 rounded-lg bg-[#FFF8F0] text-xs font-bold">${s.category}</span></td>
+                        <td class="py-3.5 tabular-nums text-neutral-600">+91 ${s.phone}</td>
+                        <td class="py-3.5 font-extrabold tabular-nums">${sStamps}</td>
+                        <td class="py-3.5">
+                          <span class="px-2.5 py-1 rounded-full text-xs font-extrabold ${
+                            s.subscription_status === 'Paused'
+                              ? 'bg-red-50 text-red-600'
+                              : 'bg-emerald-50 text-[#0F9D58]'
+                          }">
+                            ${s.subscription_status}
+                          </span>
+                        </td>
+                        <td class="py-3.5 text-right">
+                          <button onclick="toggleShopSubscription('${s.id}')" class="px-3 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-xs font-bold text-neutral-700">
+                            Toggle Plan
+                          </button>
+                        </td>
+                      </tr>
+                    `;
+                  })
+                  .join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- System Activity & Security Audit Log -->
+          <div class="bg-white rounded-3xl p-5 sm:p-6 border border-black/5 shadow-xs">
+            <h3 class="font-extrabold text-base text-[#1A1A1A] mb-3">System Security & Audit Log</h3>
+            <div class="space-y-2.5 max-h-72 overflow-y-auto">
+              ${state.auditLogs
+                .slice(0, 20)
+                .map(
+                  (log) => `
+                <div class="p-3 rounded-2xl bg-[#FFF8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                  <div>
+                    <span class="font-extrabold text-[#0F9D58]">[${log.type}]</span>
+                    <strong class="text-[#1A1A1A] ml-1">${log.shop_name}:</strong>
+                    <span class="text-neutral-600 ml-1">${log.detail}</span>
+                  </div>
+                  <span class="text-[11px] text-neutral-400 tabular-nums shrink-0">${formatTimeAgo(log.timestamp)}</span>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleShopSubscription(shopId) {
+      const shop = state.shops.find((s) => s.id === shopId);
+      if (!shop) return;
+      const cycle = ['Trial', 'Active ₹149', 'Paused'];
+      const next = cycle[(cycle.indexOf(shop.subscription_status) + 1) % cycle.length];
+      shop.subscription_status = next;
+      if (window.ApnaLoopLiveDB) {
+        window.ApnaLoopLiveDB.patchRecord('shops', shop.id, { subscription_status: next });
+      }
+      logAudit('ADMIN_SUBSCRIPTION_CHANGE', shop.name, `Subscription status updated to "${next}"`);
+      saveState();
+      showToast(`${shop.name}: Status set to ${next}`);
+      renderCurrentView();
+    }
+
+    // Boot Application
+    window.addEventListener('DOMContentLoaded', async () => {
+      updateLiveDbBadge();
+      renderCurrentView();
+      if (window.ApnaLoopLiveDB && typeof window.ApnaLoopLiveDB.init === 'function') {
+        await window.ApnaLoopLiveDB.init();
+        await window.ApnaLoopLiveDB.seedInitialShopsIfEmpty(state.shops);
+        updateLiveDbBadge();
+      }
+    });
+  </script>
+
+  <!-- Live Database Sync Engine (Firebase Real-Time + Local Cache Fallback + Custom Config) -->
+  <script type="module">
+    import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      getDoc,
+      updateDoc,
+      collection,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const CUSTOM_DB_CONFIG_KEY = "apnaloop_custom_live_db_config_v1";
+    const APP_ID = typeof __app_id !== "undefined" ? __app_id : "apnaloop-india";
+
+    window.ApnaLoopLiveDB = {
+      status: "connecting",
+      modeLabel: "Syncing...",
+      projectLabel: "ApnaLoop Live Store",
+      lastSyncedAt: null,
+      db: null,
+      auth: null,
+      user: null,
+      unsubscribers: [],
+
+      getSavedCustomConfig() {
+        try {
+          const raw = localStorage.getItem(CUSTOM_DB_CONFIG_KEY);
+          return raw ? JSON.parse(raw) : null;
+        } catch (err) {
+          return null;
+        }
+      },
+
+      saveCustomConfig(cfg) {
+        try {
+          localStorage.setItem(CUSTOM_DB_CONFIG_KEY, JSON.stringify(cfg));
+        } catch (err) {
+          console.warn("Unable to save custom DB config:", err);
+        }
+      },
+
+      clearCustomConfig() {
+        try {
+          localStorage.removeItem(CUSTOM_DB_CONFIG_KEY);
+        } catch (err) {
+          console.warn("Unable to clear custom DB config:", err);
+        }
+      },
+
+      resolveFirebaseConfig() {
+        const customCfg = this.getSavedCustomConfig();
+        if (customCfg && customCfg.provider === "firebase" && customCfg.firebase) {
+          const fb = customCfg.firebase;
+          if (fb.apiKey && fb.projectId) {
+            return { config: fb, source: "Custom Firebase Project", projectId: fb.projectId };
+          }
+        }
+        if (typeof __firebase_config !== "undefined" && __firebase_config) {
+          try {
+            const parsed = typeof __firebase_config === "string" ? JSON.parse(__firebase_config) : __firebase_config;
+            if (parsed && parsed.apiKey && parsed.projectId) {
+              return { config: parsed, source: "Live Cloud Firebase", projectId: parsed.projectId };
+            }
+          } catch (err) {
+            console.warn("Invalid __firebase_config:", err);
+          }
+        }
+        return null;
+      },
+
+      colRef(colName) {
+        return collection(this.db, "artifacts", APP_ID, "public", "data", colName);
+      },
+
+      docRef(colName, docId) {
+        return doc(this.db, "artifacts", APP_ID, "public", "data", colName, String(docId));
+      },
+
+      detachListeners() {
+        this.unsubscribers.forEach((fn) => {
+          try {
+            if (typeof fn === "function") fn();
+          } catch (e) {}
+        });
+        this.unsubscribers = [];
+      },
+
+      async init() {
+        this.detachListeners();
+        const customCfg = this.getSavedCustomConfig();
+
+        if (customCfg && customCfg.provider === "supabase" && customCfg.supabase?.url) {
+          this.status = "connected";
+          this.modeLabel = "Supabase Endpoint Active";
+          this.projectLabel = customCfg.supabase.url.replace(/^https?:\/\//, "").split("/")[0];
+          this.lastSyncedAt = new Date().toISOString();
+          if (typeof window.onLiveDbStateChange === "function") window.onLiveDbStateChange();
+        }
+
+        const resolved = this.resolveFirebaseConfig();
+        if (!resolved) {
+          this.status = "local-fallback";
+          this.modeLabel = "Local Persistent Cache";
+          this.projectLabel = "Browser Indexed/Local Store";
+          this.lastSyncedAt = new Date().toISOString();
+          if (typeof window.onLiveDbStateChange === "function") window.onLiveDbStateChange();
+          return;
+        }
+
+        try {
+          const appName = `apnaloop_${resolved.projectId}_${Date.now().toString().slice(-4)}`;
+          const existing = getApps().find((a) => a.name === appName);
+          const app = existing || initializeApp(resolved.config, appName);
+          this.auth = getAuth(app);
+          this.db = getFirestore(app);
+
+          if (typeof __initial_auth_token !== "undefined" && __initial_auth_token) {
+            await signInWithCustomToken(this.auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(this.auth);
+          }
+
+          await new Promise((resolve) => {
+            if (this.auth.currentUser) {
+              this.user = this.auth.currentUser;
+              resolve();
+              return;
+            }
+            const unsub = onAuthStateChanged(this.auth, (u) => {
+              if (u) {
+                this.user = u;
+                unsub();
+                resolve();
+              }
+            });
+            setTimeout(resolve, 2000);
+          });
+
+          this.status = "connected";
+          this.modeLabel = "Firebase Live Sync";
+          this.projectLabel = `${resolved.source} (${resolved.projectId})`;
+          this.lastSyncedAt = new Date().toISOString();
+
+          this.attachRealtimeListeners();
+          if (typeof window.onLiveDbStateChange === "function") window.onLiveDbStateChange();
+        } catch (err) {
+          console.warn("Firebase live init fallback:", err);
+          this.status = "local-fallback";
+          this.modeLabel = "Local Cache Fallback";
+          this.projectLabel = resolved.projectId || "Local Persistent Store";
+          this.lastSyncedAt = new Date().toISOString();
+          if (typeof window.onLiveDbStateChange === "function") window.onLiveDbStateChange();
+        }
+      },
+
+      attachRealtimeListeners() {
+        if (!this.db || !this.user) return;
+
+        const collectionsToWatch = ["shops", "stamps", "rewards", "whatsappMessages", "auditLogs"];
+        collectionsToWatch.forEach((colName) => {
+          const q = this.colRef(colName);
+          const unsub = onSnapshot(
+            q,
+            (snapshot) => {
+              const items = [];
+              snapshot.forEach((d) => items.push({ id: d.id, ...d.data() }));
+              this.lastSyncedAt = new Date().toISOString();
+              if (typeof window.applyRemoteCollection === "function") {
+                window.applyRemoteCollection(colName, items);
+              }
+            },
+            (error) => {
+              console.warn(`Live listener error on ${colName}:`, error);
+            }
+          );
+          this.unsubscribers.push(unsub);
+        });
+      },
+
+      async upsertRecord(colName, record) {
+        this.lastSyncedAt = new Date().toISOString();
+        if (!this.db || !this.user || this.status !== "connected") return;
+        try {
+          const cleanPayload = JSON.parse(JSON.stringify(record));
+          await setDoc(this.docRef(colName, cleanPayload.id), cleanPayload, { merge: true });
+        } catch (err) {
+          console.warn(`Failed to sync ${colName}/${record.id} to live DB:`, err);
+        }
+      },
+
+      async patchRecord(colName, docId, updates) {
+        this.lastSyncedAt = new Date().toISOString();
+        if (!this.db || !this.user || this.status !== "connected") return;
+        try {
+          await updateDoc(this.docRef(colName, docId), updates);
+        } catch (err) {
+          try {
+            await setDoc(this.docRef(colName, docId), { id: docId, ...updates }, { merge: true });
+          } catch (e2) {
+            console.warn(`Failed to patch ${colName}/${docId}:`, e2);
+          }
+        }
+      },
+
+      async seedInitialShopsIfEmpty(shops) {
+        if (!this.db || !this.user || this.status !== "connected") return;
+        for (const shop of shops) {
+          try {
+            const snap = await getDoc(this.docRef("shops", shop.id));
+            if (!snap.exists()) {
+              await setDoc(this.docRef("shops", shop.id), shop);
+            }
+          } catch (err) {
+            console.warn("Seed shop skipped:", err);
+          }
+        }
+      }
+    };
+
+    if (document.readyState !== "loading") {
+      window.ApnaLoopLiveDB.init().then(() => {
+        if (typeof state !== "undefined" && window.ApnaLoopLiveDB.seedInitialShopsIfEmpty) {
+          window.ApnaLoopLiveDB.seedInitialShopsIfEmpty(state.shops);
+        }
+        if (typeof updateLiveDbBadge === "function") updateLiveDbBadge();
+      });
+    } else {
+      window.addEventListener("DOMContentLoaded", async () => {
+        await window.ApnaLoopLiveDB.init();
+        if (typeof state !== "undefined" && window.ApnaLoopLiveDB.seedInitialShopsIfEmpty) {
+          window.ApnaLoopLiveDB.seedInitialShopsIfEmpty(state.shops);
+        }
+        if (typeof updateLiveDbBadge === "function") updateLiveDbBadge();
+      });
+    }
+  </script>
+</body>
+</html>
