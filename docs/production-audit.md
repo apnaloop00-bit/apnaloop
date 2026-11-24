@@ -53,3 +53,26 @@ Security posture:
 
 ## Deployment rule
 Do not deploy this prototype branch as a production application until authentication, data writes, RLS and reward/stamp server validation are implemented and tested. No fake “LIVE” status should be shown.
+
+
+## Development milestone 1 — Supabase auth and shop onboarding (24 Nov 2026)
+- Replaced demo-seeded initial state with empty production state. Business records are no longer loaded from localStorage.
+- Replaced browser-generated OTP with Supabase Phone Auth `signInWithOtp` and `verifyOtp` calls.
+- Added authenticated profile bootstrap for `profiles`, `customer_profiles`, and `customers` after a user is created.
+- Added a Supabase-backed shop creation flow, owner mapping, reward template creation, and automatic 30-day trial subscription.
+- Added `shops.phone_e164`; internal trigger functions have EXECUTE revoked from anon/authenticated roles.
+- Removed the Firebase Firestore bridge and the fake "Supabase configured" behavior. Client writes that are not approved server transactions are disabled.
+- Added empty-state screens when no shops are registered.
+- Preserved the original UI and deployed the development branch to Vercel preview. Latest observed deployment: `apnaloop-odqonomql-apnaloop00-3988.vercel.app`, READY.
+- Browser JavaScript syntax checked with Node `--check`.
+
+## Remaining blockers for customer-ready use
+- Supabase Phone Auth SMS provider and phone sign-in setting must be enabled/configured in the Supabase Auth dashboard. Until that is done, delivery of SMS OTP is not confirmed.
+- The OTP flow has not been end-to-end tested with a real phone number.
+- Stamp issuance, reward unlock/redemption, QR token validation, and dashboard history require server-side transactional functions. These are intentionally disabled rather than allowing insecure browser-only writes.
+- Owner phone display and complete live dashboard datasets still need read-model/RPC implementation.
+- Vercel preview remains protected by existing SSO; public access has not been enabled.
+- Razorpay, WhatsApp Cloud API, PWA manifest/service worker and full E2E test suite remain outstanding.
+
+## Latest security advisor
+The two SECURITY DEFINER trigger functions are now restricted to trigger execution only; the security advisor no longer reports public/authenticated execution warnings. The only remaining lint is the informational no-client-policy finding on service-only `otp_verifications`.
