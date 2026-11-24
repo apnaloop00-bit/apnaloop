@@ -76,3 +76,22 @@ Do not deploy this prototype branch as a production application until authentica
 
 ## Latest security advisor
 The two SECURITY DEFINER trigger functions are now restricted to trigger execution only; the security advisor no longer reports public/authenticated execution warnings. The only remaining lint is the informational no-client-policy finding on service-only `otp_verifications`.
+
+
+## Development milestone 2 — secure loyalty transactions (25 Nov 2026)
+- Added 2-minute QR sessions using 256-bit random tokens; only a shop owner can issue one, and only its SHA-256 hash is stored.
+- Added authenticated QR claim RPC with database row locking, idempotency, and one stamp per customer/shop/India day.
+- Ten stamps atomically unlock a reward and reset the loyalty-card cycle.
+- Reward code is six digits, expires in 30 days, and can be redeemed once by an authenticated shop owner.
+- Added redemption guessing limit: 10 attempts per shop/owner per 15 minutes.
+- Further stamps are blocked while an unlocked reward is pending.
+- Added customer/shop dashboard RPCs and Realtime refresh events.
+- Privileged SECURITY DEFINER implementations moved to the non-exposed private schema; public RPCs are SECURITY INVOKER wrappers.
+- Internal QR/reward/attempt tables have RLS enabled and direct client table privileges revoked.
+
+### Verification
+SQL integration assertions passed for owner QR issuance, invalid QR rejection, 10th-stamp unlock, six-digit code, idempotent retry, customer reward read, owner-only dashboard, dashboard counts/activity, one-time redemption, duplicate-day rejection, pending-reward blocking and redemption rate limiting. Temporary test rows were cleaned; test shops/users/claims/sessions count is zero.
+Supabase advisors show no unindexed foreign-key warnings and no public SECURITY DEFINER RPC warnings. Remaining no-policy notices are informational for internal-only tables with direct client privileges revoked. Remaining unused-index notices are for WhatsApp queue, OTP phone and shop phone indexes.
+
+### Still pending before production
+Real SMS provider configuration and mobile OTP delivery test; full browser/mobile E2E test; public Vercel access decision; geofence and stamp reversal workflows if required; WhatsApp Cloud API; Razorpay; PWA manifest/service worker; 15-journey acceptance testing. Existing Vercel preview remains SSO-protected.
