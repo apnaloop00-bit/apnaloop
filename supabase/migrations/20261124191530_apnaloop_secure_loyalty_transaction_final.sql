@@ -89,7 +89,12 @@ begin
   insert into public.loyalty_cards(shop_id,customer_user_id,stamp_count,reward_count)
   values(p_shop_id,v_uid,0,0) on conflict(shop_id,customer_user_id) do nothing;
   select * into v_card from public.loyalty_cards where shop_id=p_shop_id and customer_user_id=v_uid for update;
-  if exists(select 1 from public.stamps where shop_id=p_shop_id and customer_user_id=v_uid and stamp_date=v_day) then raise exception 'STAMP_ALREADY_CLAIMED_TODAY'; end if;
+  if exists(select 1 from public.stamps where shop_id=p_shop_id and customer_user_id=v_uid and stamp_date=v_day) then
+    raise exception 'STAMP_ALREADY_CLAIMED_TODAY';
+  end if;
+  if exists(select 1 from public.reward_claims where shop_id=p_shop_id and customer_user_id=v_uid and status='unlocked' and expires_at>v_now) then
+    raise exception 'REWARD_PENDING_REDEMPTION';
+  end if;
   insert into public.stamps(shop_id,customer_user_id,loyalty_card_id,issued_by,stamp_date,idempotency_key)
   values(p_shop_id,v_uid,v_card.id,v_qr.issued_by,v_day,p_idempotency_key) returning id into v_stamp_id;
   insert into public.stamp_events(shop_id,customer_user_id,loyalty_card_id,issued_by,idempotency_key,note)
@@ -208,39 +213,31 @@ CREATE OR REPLACE FUNCTION private.apnaloop_redeem_customer_reward(p_shop_id uui
  SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 declare
-  v_uid uuid:=auth.uid();
-  v_claim public.reward_claims%rowtype;
-  v_attempt_id uuid;
-  v_attempt_count integer;
+  v_uid uuid:=auth.uid(); v_claim public.reward_claims%rowtype;
+  v_attempt_id uuid; v_attempt_count integer;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
-  if p_code is null or p_code !~ '^[0-9]{6}$' then
-    return jsonb_build_object('ok',false,'message','6-digit code valid nahi hai.');
-  end if;
+  if p_code is null or p_code !~ '^[0-9]{6}$' then return jsonb_build_object('ok',false,'message','6-digit code valid nahi hai.'); end if;
   if not exists(select 1 from public.shops s where s.id=p_shop_id and
     (s.owner_user_id=v_uid or exists(select 1 from public.shop_owners so where so.shop_id=s.id and so.user_id=v_uid))) then
     raise exception 'SHOP_OWNER_REQUIRED';
   end if;
 
+  perform pg_advisory_xact_lock(hashtextextended(p_shop_id::text||':'||v_uid::text,0));
+  delete from public.reward_redemption_attempts where shop_id=p_shop_id and actor_user_id=v_uid and attempted_at<now()-interval '90 days';
+
   select count(*) into v_attempt_count from public.reward_redemption_attempts
   where shop_id=p_shop_id and actor_user_id=v_uid and attempted_at>now()-interval '15 minutes';
-  if v_attempt_count>=10 then
-    return jsonb_build_object('ok',false,'message','Bahut attempts ho gaye. 15 minute baad dobara try karein.');
-  end if;
+  if v_attempt_count>=10 then return jsonb_build_object('ok',false,'message','Bahut attempts ho gaye. 15 minute baad dobara try karein.'); end if;
 
   insert into public.reward_redemption_attempts(shop_id,actor_user_id)
   values(p_shop_id,v_uid) returning id into v_attempt_id;
 
-  select * into v_claim from public.reward_claims rc
-  where rc.shop_id=p_shop_id
+  select * into v_claim from public.reward_claims rc where rc.shop_id=p_shop_id
     and rc.code_hash=encode(extensions.digest(p_code||':'||p_shop_id::text||':'||rc.customer_user_id::text,'sha256'),'hex')
-  for update;
-  if not found then
-    return jsonb_build_object('ok',false,'message','Code galat hai ya expire ho chuka hai.');
-  end if;
-  if v_claim.status<>'unlocked' or v_claim.redeemed_at is not null then
-    return jsonb_build_object('ok',false,'message','Yeh reward pehle hi redeem ho chuka hai.');
-  end if;
+    for update;
+  if not found then return jsonb_build_object('ok',false,'message','Code galat hai ya expire ho chuka hai.'); end if;
+  if v_claim.status<>'unlocked' or v_claim.redeemed_at is not null then return jsonb_build_object('ok',false,'message','Yeh reward pehle hi redeem ho chuka hai.'); end if;
   if v_claim.expires_at<=now() then
     update public.reward_claims set status='expired' where id=v_claim.id;
     return jsonb_build_object('ok',false,'message','Reward code expire ho gaya hai.');
@@ -255,7 +252,6 @@ begin
     jsonb_build_object('customer_user_id',v_claim.customer_user_id,'title',v_claim.title));
   return jsonb_build_object('ok',true,'reward_title',v_claim.title,'customer_user_id',v_claim.customer_user_id,'redeemed_at',now());
 end; $function$
-
 
 
 grant usage on schema private to authenticated;
