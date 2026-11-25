@@ -590,7 +590,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       if (error) throw error;
       state.dashboardStats = { shopId, ...(data?.stats || {}) };
       const rows = Array.isArray(data?.recent_activity) ? data.recent_activity : [];
-      state.stamps = state.stamps.filter(s=>s.shop_id!==shopId).concat(rows.map(s=>({ id:s.id,shop_id:s.shop_id,customer_id:s.customer_id,customer_name:s.customer_name,customer_phone:(s.customer_phone||'').replace(/^\\+91/,''),status:s.status||'active',created_at:s.created_at,stamp_count:Number(s.stamp_count||0) })));
+      state.stamps = state.stamps.filter(s=>s.shop_id!==shopId).concat(rows.map(s=>({ id:s.id,shop_id:s.shop_id,customer_id:s.customer_id,customer_name:s.customer_name,customer_phone:(s.customer_phone||'').replace(/^\+91/,''),status:s.status||'active',created_at:s.created_at,stamp_count:Number(s.stamp_count||0) })));
       return data;
     }
     async function refreshLiveShopQR() {
@@ -1273,7 +1273,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       e.preventDefault();
       const name = document.getElementById('cust-name-input').value.trim();
       const phone = document.getElementById('cust-phone-input').value.trim();
-      if (!name || !/^\\d{10}$/.test(phone)) return showToast('Sahi naam aur 10-digit mobile number daalein.', 'error');
+      if (!name || !/^\d{10}$/.test(phone)) return showToast('Sahi naam aur 10-digit mobile number daalein.', 'error');
       if (!window.ApnaLoopLiveDB?.client) return showToast('Supabase connection ready nahi hai.', 'error');
       const fullPhone = `+91${phone}`;
       const { error } = await window.ApnaLoopLiveDB.client.auth.signInWithOtp({ phone: fullPhone, options: { data: { full_name: name } } });
@@ -1286,7 +1286,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     async function handleVerifyCustomerOtp(e) {
       e.preventDefault();
       const entered = document.getElementById('cust-otp-input').value.trim();
-      if (!state.pendingOtp || !/^\\d{4,8}$/.test(entered)) return showToast('Valid OTP enter karein.', 'error');
+      if (!state.pendingOtp || !/^\d{4,8}$/.test(entered)) return showToast('Valid OTP enter karein.', 'error');
       const pending = state.pendingOtp;
       const { data, error } = await window.ApnaLoopLiveDB.client.auth.verifyOtp({ phone: pending.fullPhone, token: entered, type: 'sms' });
       if (error || !data.user) return showToast(`OTP verify nahi hua: ${error?.message || 'Please retry.'}`, 'error');
@@ -1513,7 +1513,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
         city: document.getElementById('shop-city-input')?.value.trim(),
         category: document.querySelector('input[name="shop_category"]:checked')?.value || 'Other'
       };
-      if (!draft.name || !draft.city || !/^\\d{10}$/.test(draft.phone)) return showToast('Shop name, city aur valid 10-digit phone number bharein.', 'error');
+      if (!draft.name || !draft.city || !/^\d{10}$/.test(draft.phone)) return showToast('Shop name, city aur valid 10-digit phone number bharein.', 'error');
       if (!window.ApnaLoopLiveDB?.client) return showToast('Supabase connection ready nahi hai.', 'error');
       const { data: authData } = await window.ApnaLoopLiveDB.client.auth.getUser();
       const user = authData?.user;
@@ -1553,7 +1553,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
     async function handleSendOwnerOtp() {
       const draft = state.pendingOwnerShopDraft;
-      if (!draft || !/^\\d{10}$/.test(draft.phone)) return showToast('Owner ka valid 10-digit phone number chahiye.', 'error');
+      if (!draft || !/^\d{10}$/.test(draft.phone)) return showToast('Owner ka valid 10-digit phone number chahiye.', 'error');
       const fullPhone = `+91${draft.phone}`;
       const { error } = await window.ApnaLoopLiveDB.client.auth.signInWithOtp({
         phone: fullPhone, options: { data: { full_name: 'Shop Owner' } }
@@ -1950,7 +1950,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
         try {
           const params=new URLSearchParams(window.location.search); const scannedShop=params.get('shop'); const scannedToken=params.get('qr'); const scannedRedeem=params.get('redeem');
           if(scannedToken&&scannedShop){state.selectedShopId=scannedShop;state.pendingQrToken=scannedToken;state.currentView='customer';}
-          if(scannedRedeem&&/^\\d{6}$/.test(scannedRedeem)&&scannedShop){state.ownerShopId=scannedShop;state.selectedShopId=scannedShop;redeemCodeBuffer=scannedRedeem;state.currentView='redeem';}
+          if(scannedRedeem&&/^\d{6}$/.test(scannedRedeem)&&scannedShop){state.ownerShopId=scannedShop;state.selectedShopId=scannedShop;redeemCodeBuffer=scannedRedeem;state.currentView='redeem';}
           if (!window.supabase?.createClient) throw new Error('Supabase JS library load nahi hui.');
           this.client = window.supabase.createClient('https://aebdkkczseaytavprnjo.supabase.co',
             'sb_publishable_GYcxh0kfdI53XKw0bqQ1kg_XpP3KtWE',
@@ -1992,7 +1992,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       async refreshCustomer(user) {
         const { data } = await this.client.from('customer_profiles').select('display_name,phone_e164').eq('user_id',user.id).maybeSingle();
         if (data) state.currentCustomer = { id:user.id,name:data.display_name || 'Customer',
-          phone:(data.phone_e164 || user.phone || '').replace(/^\\+91/,''),verified_at:new Date().toISOString() };
+          phone:(data.phone_e164 || user.phone || '').replace(/^\+91/,''),verified_at:new Date().toISOString() };
       },
       setupRealtime() {
         if (!this.client) return;
