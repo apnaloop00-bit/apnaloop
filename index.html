@@ -506,7 +506,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
     function createInitialState() {
       return { lang: 'hinglish', currentView: 'home', selectedShopId: null, ownerShopId: null,
-        currentCustomer: null, pendingOtp: null, pendingQrToken: null, lastScanSuccess: null, shops: [], stamps: [],
+        currentCustomer: null, pendingOtp: null, pendingOwnerShopDraft: null, pendingQrToken: null, lastScanSuccess: null, shops: [], stamps: [];
         rewards: [], whatsappMessages: [], auditLogs: [], fraudBlockedCount: 0, dashboardStats: null };
     }
 
@@ -852,6 +852,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
         case 'onboarding':
           root.innerHTML = renderOnboardingView();
           mountOnboardingStandeeQR();
+          break;
+        case 'owner-login':
+          root.innerHTML = renderOwnerOtpView();
           break;
         case 'dashboard':
           root.innerHTML = renderOwnerDashboardView();
@@ -1296,6 +1299,11 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       const failed = writes.find(x => x.error);
       if (failed) return showToast(`Profile save nahi hua: ${failed.error.message}`, 'error');
       state.currentCustomer = { id: user.id, name: pending.name, phone: pending.phone, verified_at: new Date().toISOString() };
+      if (pending.flow === 'shop-owner') {
+        state.pendingOtp = null; saveState();
+        await createShopForOwner(user, state.pendingOwnerShopDraft);
+        return;
+      }
       state.pendingOtp = null; saveState();
       if (state.pendingQrToken) await handleClaimStamp();
       else { if(state.selectedShopId) await refreshCustomerCard(state.selectedShopId); renderCurrentView(); }
@@ -1474,33 +1482,85 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       if(shop){const url=new URL(window.location.origin+'/');url.searchParams.set('shop',shop.id);mountQRCode('onboarding-standee-qr',url.toString(),155);}
     }
 
-    async function handleCreateShop(e) {
-      e.preventDefault();
-      const name = document.getElementById('shop-name-input').value.trim();
-      const phone = document.getElementById('shop-phone-input').value.trim();
-      const city = document.getElementById('shop-city-input')?.value.trim();
-      const category = document.querySelector('input[name="shop_category"]:checked')?.value || 'Other';
-      const { data: authData } = await window.ApnaLoopLiveDB.client.auth.getUser();
-      const user = authData?.user;
-      if (!user) { showToast('Shop register karne se pehle mobile OTP verify karein.', 'warning'); navigateTo('customer-login'); return; }
-      if (!name || !city || !/^\\d{10}$/.test(phone)) return showToast('Shop name, city aur valid 10-digit phone number bharein.', 'error');
-      const slugBase = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'shop';
+    async function createShopForOwner(user, draft) {
+      if (!draft) return showToast('Shop details missing hain. Form dobara bharein.', 'error');
+      const catMeta = CATEGORY_META[draft.category] || CATEGORY_META.Other;
+      const slugBase = draft.name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'shop';
       const slug = `${slugBase}-${crypto.randomUUID().slice(0, 8)}`;
-      const catMeta = CATEGORY_META[category] || CATEGORY_META.Other;
       const { data: shopRow, error } = await window.ApnaLoopLiveDB.client.from('shops').insert({
-        owner_user_id: user.id, name, slug, business_type: category.toLowerCase(), city,
-        description: catMeta.defaultReward, phone_e164: `+91${phone}`, is_active: true
-      }).select('*').single();
+        owner_user_id: user.id, name: draft.name, slug, business_type: draft.category.toLowerCase(), city: draft.city,
+        description: catMeta.defaultReward, phone_e164: `+91${draft.phone}`, is_active: true
+      }).select('id,name,slug,business_type,city,description,is_active,created_at,owner_user_id').single();
       if (error) return showToast(`Shop save nahi hui: ${error.message}`, 'error');
       const rewardResult = await window.ApnaLoopLiveDB.client.from('rewards').insert({
         shop_id: shopRow.id, title: catMeta.defaultReward, description: 'ApnaLoop loyalty reward', stamps_required: 10, is_active: true
       });
       if (rewardResult.error) showToast(`Shop ban gayi, lekin reward setup fail hua: ${rewardResult.error.message}`, 'warning');
-      const newShop = { id: shopRow.id, name, phone, category, reward_text: catMeta.defaultReward, city, slug,
-        lat: null, lng: null, subscription_status: 'Trial', created_at: shopRow.created_at, owner_user_id: user.id };
+      const newShop = { id: shopRow.id, name: draft.name, phone: draft.phone, category: draft.category,
+        reward_text: catMeta.defaultReward, city: draft.city, slug, lat: null, lng: null,
+        subscription_status: 'Trial', created_at: shopRow.created_at, owner_user_id: user.id };
       state.shops.unshift(newShop); state.selectedShopId = shopRow.id; state.ownerShopId = shopRow.id;
-      newlyCreatedShopId = shopRow.id; saveState(); renderCurrentView();
-      showToast(`${name} ka account live database mein create ho gaya!`);
+      newlyCreatedShopId = shopRow.id; state.pendingOwnerShopDraft = null;
+      saveState(); state.currentView = 'onboarding'; renderCurrentView();
+      showToast(`${draft.name} ka account live database mein create ho gaya!`);
+    }
+
+    async function handleCreateShop(e) {
+      e.preventDefault();
+      const draft = {
+        name: document.getElementById('shop-name-input').value.trim(),
+        phone: document.getElementById('shop-phone-input').value.trim(),
+        city: document.getElementById('shop-city-input')?.value.trim(),
+        category: document.querySelector('input[name="shop_category"]:checked')?.value || 'Other'
+      };
+      if (!draft.name || !draft.city || !/^\\d{10}$/.test(draft.phone)) return showToast('Shop name, city aur valid 10-digit phone number bharein.', 'error');
+      if (!window.ApnaLoopLiveDB?.client) return showToast('Supabase connection ready nahi hai.', 'error');
+      const { data: authData } = await window.ApnaLoopLiveDB.client.auth.getUser();
+      const user = authData?.user;
+      if (!user) {
+        state.pendingOwnerShopDraft = draft; state.pendingOtp = null;
+        state.currentView = 'owner-login'; renderCurrentView();
+        showToast('Shop banane se pehle owner mobile OTP verify karein.');
+        return;
+      }
+      await createShopForOwner(user, draft);
+    }
+
+    function renderOwnerOtpView() {
+      const draft = state.pendingOwnerShopDraft;
+      const pending = state.pendingOtp?.flow === 'shop-owner' ? state.pendingOtp : null;
+      return `
+        <div class="max-w-md mx-auto bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-black/5 space-y-4 view-enter">
+          <div class="w-12 h-12 rounded-2xl bg-[#0F9D58]/10 text-[#0F9D58] flex items-center justify-center text-2xl">🔐</div>
+          <h2 class="text-2xl font-extrabold text-[#1A1A1A]">Owner Mobile Verification</h2>
+          <p class="text-sm text-neutral-500">${draft ? `Dukaan: ${draft.name} • +91 ${draft.phone}` : 'Owner mobile number verify karein.'}</p>
+          ${pending ? `
+            <form onsubmit="handleVerifyCustomerOtp(event)" class="space-y-3">
+              <label class="block text-xs font-bold text-neutral-700">SMS mein aaya OTP</label>
+              <input id="cust-otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required class="w-full px-4 py-3.5 rounded-2xl border border-neutral-200 text-lg font-bold tracking-[0.3em] text-center" placeholder="OTP" />
+              <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#0F9D58] text-white font-extrabold">Verify & Create Shop</button>
+              <button type="button" onclick="cancelPendingOtp()" class="w-full py-3 rounded-2xl bg-neutral-100 text-neutral-700 font-bold">Back</button>
+            </form>
+          ` : `
+            <div class="space-y-3">
+              <p class="text-xs text-neutral-600">OTP dukaan ke owner phone par bheja jayega. OTP sirf SMS se aayega.</p>
+              <button onclick="handleSendOwnerOtp()" class="w-full py-3.5 rounded-2xl bg-[#0F9D58] text-white font-extrabold">Owner Phone par OTP Bhejein</button>
+              <button onclick="navigateTo('onboarding')" class="w-full py-3 rounded-2xl bg-neutral-100 text-neutral-700 font-bold">Form par wapas</button>
+            </div>
+          `}
+        </div>`;
+    }
+
+    async function handleSendOwnerOtp() {
+      const draft = state.pendingOwnerShopDraft;
+      if (!draft || !/^\\d{10}$/.test(draft.phone)) return showToast('Owner ka valid 10-digit phone number chahiye.', 'error');
+      const fullPhone = `+91${draft.phone}`;
+      const { error } = await window.ApnaLoopLiveDB.client.auth.signInWithOtp({
+        phone: fullPhone, options: { data: { full_name: 'Shop Owner' } }
+      });
+      if (error) return showToast(`OTP send nahi hua: ${error.message}`, 'error');
+      state.pendingOtp = { name: 'Shop Owner', phone: draft.phone, fullPhone, flow: 'shop-owner' };
+      renderCurrentView(); showToast(`OTP +91 ${draft.phone} par bheja gaya.`);
     }
 
     function renderOwnerDashboardView() {
@@ -1731,6 +1791,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     }
 
     function renderSuperAdminView() {
+      if (!state.currentCustomer?.isAdmin) {
+        return `<div class="max-w-lg mx-auto bg-white rounded-3xl p-8 text-center shadow-sm border border-black/5"><div class="text-4xl mb-3">🔒</div><h2 class="text-xl font-extrabold">Admin access restricted</h2><p class="text-sm text-neutral-500 mt-2">Platform admin role verify hone ke baad hi control center khulega.</p><button onclick="navigateTo('home')" class="mt-5 px-5 py-3 rounded-xl bg-[#0F9D58] text-white font-bold">Home par jao</button></div>`;
+      }
       const totalShops = state.shops.length;
       const activeSubs = state.shops.filter((s) => s.subscription_status !== 'Paused').length;
       const totalCustomers = new Set(state.stamps.map((s) => s.customer_id)).size;
