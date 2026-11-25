@@ -95,3 +95,11 @@ Supabase advisors show no unindexed foreign-key warnings and no public SECURITY 
 
 ### Still pending before production
 Real SMS provider configuration and mobile OTP delivery test; full browser/mobile E2E test; public Vercel access decision; geofence and stamp reversal workflows if required; WhatsApp Cloud API; Razorpay; PWA manifest/service worker; 15-journey acceptance testing. Existing Vercel preview remains SSO-protected.
+
+
+## Development milestone 3 — shop live-data display polish (25 Nov 2026)
+- Updated shop directory query to include the shop's saved `phone_e164` and restore the owner phone display after a refresh.
+- Normalized database business-type casing to the existing UI category names so category-specific reward labels/styles remain stable.
+- Commit: `25ad6eb4d3a0fa723d9f7dc9c9db4a366056d97e` (`fix: restore shop phone and category from live data`).
+- Vercel preview build for that commit reached `READY`; authenticated Vercel fetch returned HTTP 200 and the deployed HTML included the updated phone mapping.
+- No production promotion was performed. Real SMS OTP delivery and end-to-end browser acceptance are still pending; production remains protected and not yet customer-ready.
