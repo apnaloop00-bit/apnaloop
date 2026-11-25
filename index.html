@@ -1508,7 +1508,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       const { data: shopRow, error } = await window.ApnaLoopLiveDB.client.from('shops').insert({
         owner_user_id: user.id, name: draft.name, slug, business_type: draft.category.toLowerCase(), city: draft.city,
         description: catMeta.defaultReward, phone_e164: `+91${draft.phone}`, is_active: true
-      }).select('id,name,slug,business_type,city,description,is_active,created_at,owner_user_id').single();
+      }).select('id,name,slug,business_type,city,description,is_active,created_at,owner_user_id,phone_e164').single();
       if (error) return showToast(`Shop save nahi hui: ${error.message}`, 'error');
       const rewardResult = await window.ApnaLoopLiveDB.client.from('rewards').insert({
         shop_id: shopRow.id, title: catMeta.defaultReward, description: 'ApnaLoop loyalty reward', stamps_required: 10, is_active: true
@@ -1994,10 +1994,10 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       },
       async refreshShops() {
         const { data, error } = await this.client.from('shops')
-          .select('id,name,slug,business_type,city,description,is_active,created_at,owner_user_id')
+          .select('id,name,slug,business_type,city,description,is_active,created_at,owner_user_id,phone_e164')
           .order('created_at', { ascending: false });
         if (error) throw error;
-        state.shops = (data || []).map(x => ({ id:x.id, name:x.name, phone:'', is_active:x.is_active, category:x.business_type,
+        state.shops = (data || []).map(x => ({ id:x.id, name:x.name, phone:(x.phone_e164 || '').replace(/^\\+91/,''), is_active:x.is_active, category:Object.keys(CATEGORY_META).find(k => k.toLowerCase() === String(x.business_type || '').toLowerCase()) || 'Other',
           reward_text:x.description || '10 stamps par reward', city:x.city, slug:x.slug, lat:null,lng:null,
           subscription_status:'Trial',created_at:x.created_at,owner_user_id:x.owner_user_id }));
         if (!state.selectedShopId || !state.shops.some(x => x.id === state.selectedShopId && x.is_active)) {
