@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ApnaLoop — QR Loyalty for Indian Small Shops</title>
   <meta name="theme-color" content="#0F9D58" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230F9D58'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle' fill='white'%3E∞%3C/text%3E%3C/svg%3E" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="ApnaLoop" />
@@ -473,6 +474,23 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       }
     };
 
+    function t(key) {
+      const dictionary = I18N[state.lang] || I18N.hinglish;
+      return dictionary[key] ?? I18N.hinglish[key] ?? key;
+    }
+
+    function toggleLanguage() {
+      state.lang = state.lang === 'hinglish' ? 'english' : 'hinglish';
+      document.querySelectorAll('[data-i18n]').forEach((element) => {
+        const key = element.getAttribute('data-i18n');
+        element.textContent = t(key);
+      });
+      const label = document.getElementById('lang-label');
+      if (label) label.textContent = state.lang === 'hinglish' ? 'Hinglish' : 'English';
+      saveState();
+      renderCurrentView();
+    }
+
     // =========================================================================
     // 2. CATEGORY PRESETS & PERSISTENT DATABASE (LOCALSTORAGE + LIVE SYNC)
     // =========================================================================
@@ -489,7 +507,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
     function createInitialState() {
       return { lang: 'hinglish', currentView: 'home', selectedShopId: null, ownerShopId: null,
-        currentCustomer: null, pendingOtp: null, pendingQrToken: null, lastScanSuccess: null, shops: [], stamps: [],
+        currentCustomer: null, pendingOtp: null, pendingOwnerShopDraft: null, pendingQrToken: null, lastScanSuccess: null, shops: [], stamps: [],
         rewards: [], whatsappMessages: [], auditLogs: [], fraudBlockedCount: 0, dashboardStats: null };
     }
 
@@ -499,6 +517,66 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       catch (e) { return createInitialState(); }
     }
     let state = loadState();
+    function updateNavHighlights() {
+      const activeView = state.currentView === 'scan-success' ? 'customer' : state.currentView;
+      document.querySelectorAll('[data-nav]').forEach((button) => {
+        const active = button.getAttribute('data-nav') === activeView;
+        if (button.classList.contains('mobile-nav-btn')) {
+          button.classList.toggle('bg-[#0F9D58]/10', active);
+          button.classList.toggle('text-[#0F9D58]', active);
+          button.classList.toggle('text-neutral-500', !active);
+          button.setAttribute('aria-current', active ? 'page' : 'false');
+        } else {
+          button.classList.toggle('bg-white', active);
+          button.classList.toggle('text-[#0F9D58]', active);
+          button.classList.toggle('shadow-sm', active);
+          button.classList.toggle('text-neutral-600', !active);
+          button.setAttribute('aria-current', active ? 'page' : 'false');
+        }
+      });
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      const palette = type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-amber-500' : 'bg-[#0F9D58]';
+      toast.className = `pointer-events-auto ${palette} text-white rounded-2xl px-4 py-3 shadow-lg text-sm font-bold flex items-start gap-2 view-enter`;
+      toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+      const messageNode = document.createElement('span');
+      messageNode.textContent = String(message || '');
+      toast.appendChild(messageNode);
+      container.appendChild(toast);
+      window.setTimeout(() => {
+        toast.classList.add('opacity-0');
+        window.setTimeout(() => toast.remove(), 250);
+      }, 3500);
+    }
+
+    function updateLiveDbBadge() {
+      const db = window.ApnaLoopLiveDB;
+      const pill = document.getElementById('live-db-pill');
+      const dot = document.getElementById('live-db-dot');
+      const label = document.getElementById('live-db-label');
+      if (!pill || !dot || !label) return;
+      const status = db?.status || 'connecting';
+      const text = status === 'connected' ? 'Live DB' :
+        status === 'error' ? 'DB Issue' : 'Connecting';
+      label.textContent = text;
+      pill.title = db?.lastError ? 'Database connection issue: ' + db.lastError : (db?.modeLabel || 'Live database status');
+      dot.className = 'w-2 h-2 rounded-full ' +
+        (status === 'connected' ? 'bg-[#0F9D58]' : status === 'error' ? 'bg-red-500' : 'bg-amber-500 animate-pulse');
+      pill.classList.toggle('bg-emerald-50', status === 'connected');
+      pill.classList.toggle('border-emerald-200/80', status === 'connected');
+      pill.classList.toggle('text-[#0F9D58]', status === 'connected');
+      pill.classList.toggle('bg-red-50', status === 'error');
+      pill.classList.toggle('border-red-200', status === 'error');
+      pill.classList.toggle('text-red-600', status === 'error');
+      pill.classList.toggle('bg-amber-50', status === 'connecting');
+      pill.classList.toggle('border-amber-200', status === 'connecting');
+      pill.classList.toggle('text-amber-700', status === 'connecting');
+    }
+
     function saveState() {
       try { localStorage.setItem('apnaloop_language', state.lang || 'hinglish'); } catch (e) {}
       updateWhatsAppBadge(); updateLiveDbBadge();
@@ -530,7 +608,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       if (error) throw error;
       state.dashboardStats = { shopId, ...(data?.stats || {}) };
       const rows = Array.isArray(data?.recent_activity) ? data.recent_activity : [];
-      state.stamps = state.stamps.filter(s=>s.shop_id!==shopId).concat(rows.map(s=>({ id:s.id,shop_id:s.shop_id,customer_id:s.customer_id,customer_name:s.customer_name,customer_phone:(s.customer_phone||'').replace(/^\\+91/,''),status:s.status||'active',created_at:s.created_at,stamp_count:Number(s.stamp_count||0) })));
+      state.stamps = state.stamps.filter(s=>s.shop_id!==shopId).concat(rows.map(s=>({ id:s.id,shop_id:s.shop_id,customer_id:s.customer_id,customer_name:s.customer_name,customer_phone:(s.customer_phone||'').replace(/^\+91/,''),status:s.status||'active',created_at:s.created_at,stamp_count:Number(s.stamp_count||0) })));
       return data;
     }
     async function refreshLiveShopQR() {
@@ -792,6 +870,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
         case 'onboarding':
           root.innerHTML = renderOnboardingView();
           mountOnboardingStandeeQR();
+          break;
+        case 'owner-login':
+          root.innerHTML = renderOwnerOtpView();
           break;
         case 'dashboard':
           root.innerHTML = renderOwnerDashboardView();
@@ -1210,7 +1291,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       e.preventDefault();
       const name = document.getElementById('cust-name-input').value.trim();
       const phone = document.getElementById('cust-phone-input').value.trim();
-      if (!name || !/^\\d{10}$/.test(phone)) return showToast('Sahi naam aur 10-digit mobile number daalein.', 'error');
+      if (!name || !/^\d{10}$/.test(phone)) return showToast('Sahi naam aur 10-digit mobile number daalein.', 'error');
       if (!window.ApnaLoopLiveDB?.client) return showToast('Supabase connection ready nahi hai.', 'error');
       const fullPhone = `+91${phone}`;
       const { error } = await window.ApnaLoopLiveDB.client.auth.signInWithOtp({ phone: fullPhone, options: { data: { full_name: name } } });
@@ -1223,7 +1304,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     async function handleVerifyCustomerOtp(e) {
       e.preventDefault();
       const entered = document.getElementById('cust-otp-input').value.trim();
-      if (!state.pendingOtp || !/^\\d{4,8}$/.test(entered)) return showToast('Valid OTP enter karein.', 'error');
+      if (!state.pendingOtp || !/^\d{4,8}$/.test(entered)) return showToast('Valid OTP enter karein.', 'error');
       const pending = state.pendingOtp;
       const { data, error } = await window.ApnaLoopLiveDB.client.auth.verifyOtp({ phone: pending.fullPhone, token: entered, type: 'sms' });
       if (error || !data.user) return showToast(`OTP verify nahi hua: ${error?.message || 'Please retry.'}`, 'error');
@@ -1236,6 +1317,11 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       const failed = writes.find(x => x.error);
       if (failed) return showToast(`Profile save nahi hua: ${failed.error.message}`, 'error');
       state.currentCustomer = { id: user.id, name: pending.name, phone: pending.phone, verified_at: new Date().toISOString() };
+      if (pending.flow === 'shop-owner') {
+        state.pendingOtp = null; saveState();
+        await createShopForOwner(user, state.pendingOwnerShopDraft);
+        return;
+      }
       state.pendingOtp = null; saveState();
       if (state.pendingQrToken) await handleClaimStamp();
       else { if(state.selectedShopId) await refreshCustomerCard(state.selectedShopId); renderCurrentView(); }
@@ -1309,9 +1395,12 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     let newlyCreatedShopId = null;
 
     function renderOnboardingView() {
-      const createdShop = newlyCreatedShopId
+      const createdShop = (newlyCreatedShopId
         ? state.shops.find((s) => s.id === newlyCreatedShopId)
-        : state.shops.find((s) => s.owner_user_id === state.currentCustomer?.id);
+        : state.shops.find((s) => s.owner_user_id === state.currentCustomer?.id)) || {
+          id: '', name: 'Aapki Dukaan', category: 'Shop',
+          reward_text: 'Aapka reward yahan dikhega', isPlaceholder: true
+        };
 
       return `
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start view-enter">
@@ -1411,33 +1500,85 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       if(shop){const url=new URL(window.location.origin+'/');url.searchParams.set('shop',shop.id);mountQRCode('onboarding-standee-qr',url.toString(),155);}
     }
 
-    async function handleCreateShop(e) {
-      e.preventDefault();
-      const name = document.getElementById('shop-name-input').value.trim();
-      const phone = document.getElementById('shop-phone-input').value.trim();
-      const city = document.getElementById('shop-city-input')?.value.trim();
-      const category = document.querySelector('input[name="shop_category"]:checked')?.value || 'Other';
-      const { data: authData } = await window.ApnaLoopLiveDB.client.auth.getUser();
-      const user = authData?.user;
-      if (!user) { showToast('Shop register karne se pehle mobile OTP verify karein.', 'warning'); navigateTo('customer-login'); return; }
-      if (!name || !city || !/^\\d{10}$/.test(phone)) return showToast('Shop name, city aur valid 10-digit phone number bharein.', 'error');
-      const slugBase = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'shop';
+    async function createShopForOwner(user, draft) {
+      if (!draft) return showToast('Shop details missing hain. Form dobara bharein.', 'error');
+      const catMeta = CATEGORY_META[draft.category] || CATEGORY_META.Other;
+      const slugBase = draft.name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'shop';
       const slug = `${slugBase}-${crypto.randomUUID().slice(0, 8)}`;
-      const catMeta = CATEGORY_META[category] || CATEGORY_META.Other;
       const { data: shopRow, error } = await window.ApnaLoopLiveDB.client.from('shops').insert({
-        owner_user_id: user.id, name, slug, business_type: category.toLowerCase(), city,
-        description: catMeta.defaultReward, phone_e164: `+91${phone}`, is_active: true
-      }).select('*').single();
+        owner_user_id: user.id, name: draft.name, slug, business_type: draft.category.toLowerCase(), city: draft.city,
+        description: catMeta.defaultReward, phone_e164: `+91${draft.phone}`, is_active: true
+      }).select('id,name,slug,business_type,city,description,is_active,created_at,owner_user_id').single();
       if (error) return showToast(`Shop save nahi hui: ${error.message}`, 'error');
       const rewardResult = await window.ApnaLoopLiveDB.client.from('rewards').insert({
         shop_id: shopRow.id, title: catMeta.defaultReward, description: 'ApnaLoop loyalty reward', stamps_required: 10, is_active: true
       });
       if (rewardResult.error) showToast(`Shop ban gayi, lekin reward setup fail hua: ${rewardResult.error.message}`, 'warning');
-      const newShop = { id: shopRow.id, name, phone, category, reward_text: catMeta.defaultReward, city, slug,
-        lat: null, lng: null, subscription_status: 'Trial', created_at: shopRow.created_at, owner_user_id: user.id };
+      const newShop = { id: shopRow.id, name: draft.name, phone: draft.phone, category: draft.category,
+        reward_text: catMeta.defaultReward, city: draft.city, slug, lat: null, lng: null,
+        subscription_status: 'Trial', created_at: shopRow.created_at, owner_user_id: user.id };
       state.shops.unshift(newShop); state.selectedShopId = shopRow.id; state.ownerShopId = shopRow.id;
-      newlyCreatedShopId = shopRow.id; saveState(); renderCurrentView();
-      showToast(`${name} ka account live database mein create ho gaya!`);
+      newlyCreatedShopId = shopRow.id; state.pendingOwnerShopDraft = null;
+      saveState(); state.currentView = 'onboarding'; renderCurrentView();
+      showToast(`${draft.name} ka account live database mein create ho gaya!`);
+    }
+
+    async function handleCreateShop(e) {
+      e.preventDefault();
+      const draft = {
+        name: document.getElementById('shop-name-input').value.trim(),
+        phone: document.getElementById('shop-phone-input').value.trim(),
+        city: document.getElementById('shop-city-input')?.value.trim(),
+        category: document.querySelector('input[name="shop_category"]:checked')?.value || 'Other'
+      };
+      if (!draft.name || !draft.city || !/^\d{10}$/.test(draft.phone)) return showToast('Shop name, city aur valid 10-digit phone number bharein.', 'error');
+      if (!window.ApnaLoopLiveDB?.client) return showToast('Supabase connection ready nahi hai.', 'error');
+      const { data: authData } = await window.ApnaLoopLiveDB.client.auth.getUser();
+      const user = authData?.user;
+      if (!user) {
+        state.pendingOwnerShopDraft = draft; state.pendingOtp = null;
+        state.currentView = 'owner-login'; renderCurrentView();
+        showToast('Shop banane se pehle owner mobile OTP verify karein.');
+        return;
+      }
+      await createShopForOwner(user, draft);
+    }
+
+    function renderOwnerOtpView() {
+      const draft = state.pendingOwnerShopDraft;
+      const pending = state.pendingOtp?.flow === 'shop-owner' ? state.pendingOtp : null;
+      return `
+        <div class="max-w-md mx-auto bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-black/5 space-y-4 view-enter">
+          <div class="w-12 h-12 rounded-2xl bg-[#0F9D58]/10 text-[#0F9D58] flex items-center justify-center text-2xl">🔐</div>
+          <h2 class="text-2xl font-extrabold text-[#1A1A1A]">Owner Mobile Verification</h2>
+          <p class="text-sm text-neutral-500">${draft ? `Dukaan: ${draft.name} • +91 ${draft.phone}` : 'Owner mobile number verify karein.'}</p>
+          ${pending ? `
+            <form onsubmit="handleVerifyCustomerOtp(event)" class="space-y-3">
+              <label class="block text-xs font-bold text-neutral-700">SMS mein aaya OTP</label>
+              <input id="cust-otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required class="w-full px-4 py-3.5 rounded-2xl border border-neutral-200 text-lg font-bold tracking-[0.3em] text-center" placeholder="OTP" />
+              <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#0F9D58] text-white font-extrabold">Verify & Create Shop</button>
+              <button type="button" onclick="cancelPendingOtp()" class="w-full py-3 rounded-2xl bg-neutral-100 text-neutral-700 font-bold">Back</button>
+            </form>
+          ` : `
+            <div class="space-y-3">
+              <p class="text-xs text-neutral-600">OTP dukaan ke owner phone par bheja jayega. OTP sirf SMS se aayega.</p>
+              <button onclick="handleSendOwnerOtp()" class="w-full py-3.5 rounded-2xl bg-[#0F9D58] text-white font-extrabold">Owner Phone par OTP Bhejein</button>
+              <button onclick="navigateTo('onboarding')" class="w-full py-3 rounded-2xl bg-neutral-100 text-neutral-700 font-bold">Form par wapas</button>
+            </div>
+          `}
+        </div>`;
+    }
+
+    async function handleSendOwnerOtp() {
+      const draft = state.pendingOwnerShopDraft;
+      if (!draft || !/^\d{10}$/.test(draft.phone)) return showToast('Owner ka valid 10-digit phone number chahiye.', 'error');
+      const fullPhone = `+91${draft.phone}`;
+      const { error } = await window.ApnaLoopLiveDB.client.auth.signInWithOtp({
+        phone: fullPhone, options: { data: { full_name: 'Shop Owner' } }
+      });
+      if (error) return showToast(`OTP send nahi hua: ${error.message}`, 'error');
+      state.pendingOtp = { name: 'Shop Owner', phone: draft.phone, fullPhone, flow: 'shop-owner' };
+      renderCurrentView(); showToast(`OTP +91 ${draft.phone} par bheja gaya.`);
     }
 
     function renderOwnerDashboardView() {
@@ -1668,6 +1809,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     }
 
     function renderSuperAdminView() {
+      if (!state.currentCustomer?.isAdmin) {
+        return `<div class="max-w-lg mx-auto bg-white rounded-3xl p-8 text-center shadow-sm border border-black/5"><div class="text-4xl mb-3">🔒</div><h2 class="text-xl font-extrabold">Admin access restricted</h2><p class="text-sm text-neutral-500 mt-2">Platform admin role verify hone ke baad hi control center khulega.</p><button onclick="navigateTo('home')" class="mt-5 px-5 py-3 rounded-xl bg-[#0F9D58] text-white font-bold">Home par jao</button></div>`;
+      }
       const totalShops = state.shops.length;
       const activeSubs = state.shops.filter((s) => s.subscription_status !== 'Paused').length;
       const totalCustomers = new Set(state.stamps.map((s) => s.customer_id)).size;
@@ -1824,7 +1968,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
         try {
           const params=new URLSearchParams(window.location.search); const scannedShop=params.get('shop'); const scannedToken=params.get('qr'); const scannedRedeem=params.get('redeem');
           if(scannedToken&&scannedShop){state.selectedShopId=scannedShop;state.pendingQrToken=scannedToken;state.currentView='customer';}
-          if(scannedRedeem&&/^\\d{6}$/.test(scannedRedeem)&&scannedShop){state.ownerShopId=scannedShop;state.selectedShopId=scannedShop;redeemCodeBuffer=scannedRedeem;state.currentView='redeem';}
+          if(scannedRedeem&&/^\d{6}$/.test(scannedRedeem)&&scannedShop){state.ownerShopId=scannedShop;state.selectedShopId=scannedShop;redeemCodeBuffer=scannedRedeem;state.currentView='redeem';}
           if (!window.supabase?.createClient) throw new Error('Supabase JS library load nahi hui.');
           this.client = window.supabase.createClient('https://aebdkkczseaytavprnjo.supabase.co',
             'sb_publishable_GYcxh0kfdI53XKw0bqQ1kg_XpP3KtWE',
@@ -1866,7 +2010,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       async refreshCustomer(user) {
         const { data } = await this.client.from('customer_profiles').select('display_name,phone_e164').eq('user_id',user.id).maybeSingle();
         if (data) state.currentCustomer = { id:user.id,name:data.display_name || 'Customer',
-          phone:(data.phone_e164 || user.phone || '').replace(/^\\+91/,''),verified_at:new Date().toISOString() };
+          phone:(data.phone_e164 || user.phone || '').replace(/^\+91/,''),verified_at:new Date().toISOString() };
       },
       setupRealtime() {
         if (!this.client) return;
