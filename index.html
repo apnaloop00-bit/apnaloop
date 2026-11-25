@@ -1369,9 +1369,12 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     let newlyCreatedShopId = null;
 
     function renderOnboardingView() {
-      const createdShop = newlyCreatedShopId
+      const createdShop = (newlyCreatedShopId
         ? state.shops.find((s) => s.id === newlyCreatedShopId)
-        : state.shops.find((s) => s.owner_user_id === state.currentCustomer?.id);
+        : state.shops.find((s) => s.owner_user_id === state.currentCustomer?.id)) || {
+          id: '', name: 'Aapki Dukaan', category: 'Shop',
+          reward_text: 'Aapka reward yahan dikhega', isPlaceholder: true
+        };
 
       return `
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start view-enter">
