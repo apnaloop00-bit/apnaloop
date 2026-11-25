@@ -499,6 +499,25 @@ CREATE TABLE IF NOT EXISTS subscriptions (
       catch (e) { return createInitialState(); }
     }
     let state = loadState();
+    function updateNavHighlights() {
+      const activeView = state.currentView === 'scan-success' ? 'customer' : state.currentView;
+      document.querySelectorAll('[data-nav]').forEach((button) => {
+        const active = button.getAttribute('data-nav') === activeView;
+        if (button.classList.contains('mobile-nav-btn')) {
+          button.classList.toggle('bg-[#0F9D58]/10', active);
+          button.classList.toggle('text-[#0F9D58]', active);
+          button.classList.toggle('text-neutral-500', !active);
+          button.setAttribute('aria-current', active ? 'page' : 'false');
+        } else {
+          button.classList.toggle('bg-white', active);
+          button.classList.toggle('text-[#0F9D58]', active);
+          button.classList.toggle('shadow-sm', active);
+          button.classList.toggle('text-neutral-600', !active);
+          button.setAttribute('aria-current', active ? 'page' : 'false');
+        }
+      });
+    }
+
     function updateLiveDbBadge() {
       const db = window.ApnaLoopLiveDB;
       const pill = document.getElementById('live-db-pill');
